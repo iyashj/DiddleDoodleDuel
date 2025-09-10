@@ -1,7 +1,3 @@
-//
-// Created by Yash Jain on 10.9.2025.
-//
-
 #ifndef DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
 #define DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
 #include "game/game.h"
@@ -17,7 +13,7 @@ public:
     void onRender() override;
 
 private:
-    entt::registry registry_;
+    entt::registry registry;
     std::string title;
 
     void checkBoundsAgainstScreen();
