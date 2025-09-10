@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-2022]
+        build_type: [Debug, Release]
+        with_tests: [true, false]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Toolchain and system deps
+      - name: Install toolchain and deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 ninja-build \
+            xorg-dev libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxi-dev libasound2-dev pkg-config
+          echo "CC=gcc-13" >> $GITHUB_ENV
+          echo "CXX=g++-13" >> $GITHUB_ENV
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja ccache
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja -y
+
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Conan
+        run: |
+          python -m pip install --upgrade pip
+          pip install "conan>=2.0,<3.0"
+
+      - name: Conan cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: ${{ runner.os }}-conan2-${{ matrix.build_type }}-${{ hashFiles('**/conanfile.py') }}
+          restore-keys: |
+            ${{ runner.os }}-conan2-${{ matrix.build_type }}-
+            ${{ runner.os }}-conan2-
+
+      - name: Enable ccache (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+
+      - name: Create Conan profile
+        shell: bash
+        run: |
+          cat > ci_profile << 'EOF'
+          [settings]
+          os=${{ runner.os == 'Linux' && 'Linux' || runner.os == 'macOS' && 'Macos' || 'Windows' }}
+          arch=${{ runner.os == 'macOS' && 'armv8' || 'x86_64' }}
+          compiler=${{ runner.os == 'Linux' && 'gcc' || runner.os == 'macOS' && 'apple-clang' || 'msvc' }}
+          compiler.version=${{ runner.os == 'Linux' && '13' || runner.os == 'macOS' && '15' || '194' }}
+          compiler.cppstd=23
+          build_type=${{ matrix.build_type }}
+          EOF
+          
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            echo "compiler.runtime=dynamic" >> ci_profile
+            echo "compiler.runtime_type=${{ matrix.build_type }}" >> ci_profile
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            echo "compiler.libcxx=libc++" >> ci_profile
+          else
+            echo "compiler.libcxx=libstdc++11" >> ci_profile
+          fi
+
+      - name: Configure build vars
+        id: cfg
+        shell: bash
+        run: |
+          BUILD_DIR="build-${{ matrix.build_type }}-${{ matrix.with_tests }}"
+          echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+
+          if [[ "${{ matrix.build_type }}" == "Debug" && "${{ matrix.with_tests }}" == "true" ]]; then
+            echo "enable_sanitizers=ON" >> $GITHUB_OUTPUT
+          else
+            echo "enable_sanitizers=OFF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Conan install
+        run: |
+          conan install . \
+            --profile ci_profile \
+            -o build_tests=${{ matrix.with_tests }} \
+            --build=missing \
+            -of ${{ steps.cfg.outputs.build_dir }}
+
+      - name: CMake configure
+        shell: bash
+        run: |
+          EXTRA_FLAGS=""
+          if [[ -n "${CMAKE_C_COMPILER_LAUNCHER}" && -n "${CMAKE_CXX_COMPILER_LAUNCHER}" ]]; then
+            EXTRA_FLAGS+=" -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER} -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}"
+          fi
+          cmake -S . -B ${{ steps.cfg.outputs.build_dir }} \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.cfg.outputs.build_dir }}/conan_toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DDOODLEDUEL_BUILD_TESTS=${{ matrix.with_tests }} \
+            -DDDD_ENABLE_SANITIZERS=${{ steps.cfg.outputs.enable_sanitizers }} \
+            ${EXTRA_FLAGS}
+
+      - name: Build
+        run: cmake --build ${{ steps.cfg.outputs.build_dir }} --config ${{ matrix.build_type }} -j
+
+      - name: Test
+        if: matrix.with_tests == true
+        run: ctest --test-dir ${{ steps.cfg.outputs.build_dir }} --output-on-failure -C ${{ matrix.build_type }}
+
+      - name: ccache stats (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          which ccache && ccache -s || true
+
+      - name: Upload test results (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.with_tests }}
+          path: |
+            ${{ steps.cfg.outputs.build_dir }}/Testing/
+            ${{ steps.cfg.outputs.build_dir }}/**/test-results/
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.with_tests }}
+          path: |
+            ${{ steps.cfg.outputs.build_dir }}/CMakeFiles/*.log
+            ${{ steps.cfg.outputs.build_dir }}/**/*.log
+            ~/.conan2/logs/
+          retention-days: 14
