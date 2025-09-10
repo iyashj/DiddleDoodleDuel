@@ -1,0 +1,84 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Debug build with sanitizers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "toolchainFile": "${sourceDir}/build/debug/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DOODLEDUEL_BUILD_TESTS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "debug-tests",
+      "displayName": "Debug + Tests",
+      "description": "Debug build with tests and sanitizers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug-tests",
+      "toolchainFile": "${sourceDir}/build/debug-tests/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DOODLEDUEL_BUILD_TESTS": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Optimized release build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "toolchainFile": "${sourceDir}/build/release/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DOODLEDUEL_BUILD_TESTS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "release-tests",
+      "displayName": "Release + Tests",
+      "description": "Release build with tests",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release-tests",
+      "toolchainFile": "${sourceDir}/build/release-tests/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DOODLEDUEL_BUILD_TESTS": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "displayName": "Debug"
+    },
+    {
+      "name": "debug-tests",
+      "configurePreset": "debug-tests",
+      "displayName": "Debug + Tests"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "displayName": "Release"
+    },
+    {
+      "name": "release-tests",
+      "configurePreset": "release-tests",
+      "displayName": "Release + Tests"
+    }
+  ]
+}

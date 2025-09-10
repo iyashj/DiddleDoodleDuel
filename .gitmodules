@@ -1,0 +1,3 @@
+[submodule "humble-engine"]
+	path = humble-engine
+	url = https://github.com/iyashj/humble-engine.git
