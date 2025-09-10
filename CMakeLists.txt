@@ -34,7 +34,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE HumbleEngine::HumbleEngine)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/include)
 
 # Link entt if available
-find_package(entt QUIET)
+find_package(entt REQUIRED)
 if(entt_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
 endif()
