@@ -114,12 +114,7 @@ jobs:
           fi
 
       - name: Conan install
-        run: |
-          conan install . \
-            --profile ci_profile \
-            -o build_tests=${{ matrix.with_tests }} \
-            --build=missing \
-            -of ${{ steps.cfg.outputs.build_dir }}
+        run: conan install . --profile ci_profile -o build_tests=${{ matrix.with_tests }} --build=missing -of ${{ steps.cfg.outputs.build_dir }}
 
       - name: CMake configure
         shell: bash
