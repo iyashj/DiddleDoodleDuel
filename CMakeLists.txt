@@ -26,6 +26,10 @@ add_executable(${PROJECT_NAME}
         main.cpp
         diddle_doodle_duel.cpp
         diddle_doodle_duel.h
+        src/components/movement_structs.h
+        src/components/drawing_structs.h
+        src/components/player.h
+        src/components/inputs.h
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)

@@ -1,29 +1,9 @@
 #include "diddle_doodle_duel.h"
+#include "src/components/drawing_structs.h"
+#include "src/components/inputs.h"
+#include "src/components/movement_structs.h"
+#include "src/components/player.h"
 #include <entt/entity/registry.hpp>
-
-struct Input {
-    bool rotateLeft { false };
-    bool rotateRight { false };
-};
-
-struct Position {
-    Vector2 pos{0.0F, 0.0F};
-};
-
-struct Velocity {
-    Vector2 vel{0.0F, 0.0F};
-    float rotationSpeed {180.0F};
-};
-
-struct Renderable {
-    float radius{20.0F};
-    Color color{WHITE};
-};
-
-struct Player : Renderable {
-    float speed{30000.0F};
-    float rotation{18000.0F};
-};
 
 diddle_doodle_duel::diddle_doodle_duel(engine::IRenderer& renderer) : Game(renderer) {
     SetTargetFPS(60);

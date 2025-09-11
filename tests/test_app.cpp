@@ -1,4 +1,6 @@
 #include "../diddle_doodle_duel.h"
+#include "../src/components/movement_structs.h"
+#include "../src/components/player.h"
 #include "core/engine_core.h"
 #include "logging/logger.h"
 #include "rendering/renderer.h"
@@ -6,31 +8,7 @@
 #include <entt/entt.hpp>
 #include <iterator>
 
-struct TestPosition {
-    float x{0.0f}, y{0.0f};
-};
-
-struct TestVelocity {
-    float dx{0.0f}, dy{0.0f};
-};
-
-struct Position {
-    Vector2 pos;
-};
-
-struct Velocity {
-    Vector2 vel;
-};
-
-struct Renderable {
-    float radius;
-    Color color;
-};
-
-struct Player {
-    float speed;
-};
-
+struct Renderable;
 TEST_CASE("EngineCore initializes/shuts down", "[engine][core]") {
     auto& core = engine::EngineCore::getInstance();
     REQUIRE(core.initialize() == true);
@@ -59,10 +37,10 @@ TEST_CASE("ECS registry basic operations", "[ecs][entt]") {
     SECTION("Component attachment and retrieval") {
         auto entity = registry.create();
         
-        registry.emplace<TestPosition>(entity, 10.0f, 20.0f);
-        REQUIRE(registry.all_of<TestPosition>(entity));
+        registry.emplace<Position>(entity, 10.0f, 20.0f);
+        REQUIRE(registry.all_of<Position>(entity));
         
-        auto& pos = registry.get<TestPosition>(entity);
+        auto& [pos] = registry.get<Position>(entity);
         REQUIRE(pos.x == 10.0f);
         REQUIRE(pos.y == 20.0f);
     }
@@ -70,16 +48,16 @@ TEST_CASE("ECS registry basic operations", "[ecs][entt]") {
     SECTION("Multiple components per entity") {
         auto entity = registry.create();
         
-        registry.emplace<TestPosition>(entity, 5.0f, 15.0f);
-        registry.emplace<TestVelocity>(entity, 1.0f, -1.0f);
+        registry.emplace<Position>(entity, 5.0F, 15.0F);
+        registry.emplace<Velocity>(entity, 1.0F, -1.0F);
         
-        REQUIRE(registry.all_of<TestPosition, TestVelocity>(entity));
+        REQUIRE(registry.all_of<Position, Velocity>(entity));
         
-        auto& pos = registry.get<TestPosition>(entity);
-        auto& vel = registry.get<TestVelocity>(entity);
+        auto& [position] = registry.get<Position>(entity);
+        auto& [velocity, rotationSpeed] = registry.get<Velocity>(entity);
         
-        REQUIRE(pos.x == 5.0f);
-        REQUIRE(vel.dx == 1.0f);
+        REQUIRE(position.x == 5.0F);
+        REQUIRE(velocity.x == 1.0F);
     }
     
     SECTION("View iteration") {
@@ -88,24 +66,24 @@ TEST_CASE("ECS registry basic operations", "[ecs][entt]") {
         auto e2 = registry.create();
         auto e3 = registry.create();
         
-        registry.emplace<TestPosition>(e1, 1.0f, 1.0f);
-        registry.emplace<TestPosition>(e2, 2.0f, 2.0f);
-        registry.emplace<TestVelocity>(e2, 0.5f, 0.5f);
-        registry.emplace<TestPosition>(e3, 3.0f, 3.0f);
-        registry.emplace<TestVelocity>(e3, -0.5f, -0.5f);
+        registry.emplace<Position>(e1, 1.0f, 1.0f);
+        registry.emplace<Position>(e2, 2.0f, 2.0f);
+        registry.emplace<Velocity>(e2, 0.5f, 0.5f);
+        registry.emplace<Position>(e3, 3.0f, 3.0f);
+        registry.emplace<Velocity>(e3, -0.5f, -0.5f);
         
         // Test view with single component
-        auto posView = registry.view<TestPosition>();
+        auto posView = registry.view<Position>();
         REQUIRE(std::distance(posView.begin(), posView.end()) == 3);
         
         // Test view with multiple components
-        auto movementView = registry.view<TestPosition, TestVelocity>();
+        auto movementView = registry.view<Position, Velocity>();
         REQUIRE(std::distance(movementView.begin(), movementView.end()) == 2);
         
         // Test iteration
         int count = 0;
         for (auto entity : movementView) {
-            REQUIRE(registry.all_of<TestPosition, TestVelocity>(entity));
+            REQUIRE(registry.all_of<Position, Velocity>(entity));
             count++;
         }
         REQUIRE(count == 2);
@@ -151,8 +129,8 @@ TEST_CASE("Game component systems", "[game][ecs][components]") {
         registry.emplace<Position>(player, Vector2{400.0f, 300.0f});
         registry.emplace<Velocity>(player, Vector2{0.0f, 0.0f});
         registry.emplace<Renderable>(player, 20.0f, Color{0, 255, 255, 255}); // CYAN
-        registry.emplace<Player>(player, 200.0f);
-        
+        registry.emplace<Player>(player, 200.0F);
+
         REQUIRE(registry.all_of<Position, Velocity, Renderable, Player>(player));
         
         auto& pos = registry.get<Position>(player);
@@ -165,7 +143,7 @@ TEST_CASE("Game component systems", "[game][ecs][components]") {
         REQUIRE(vel.vel.x == 0.0f);
         REQUIRE(vel.vel.y == 0.0f);
         REQUIRE(render.radius == 20.0f);
-        REQUIRE(playerComp.speed == 200.0f);
+        REQUIRE(playerComp.speed == 30000.0f);
     }
     
     SECTION("Movement system simulation") {

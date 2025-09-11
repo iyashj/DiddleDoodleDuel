@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
-# Catch2 v3 provides Catch2::Catch2WithMain
-find_package(Catch2 3 REQUIRED)
+# Catch2 v3 provides Catch2::Catch2WithMain and CTest integration via Catch.cmake
+find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(ddd_tests
     test_app.cpp
@@ -29,4 +29,5 @@ elseif(MSVC)
 endif()
 
 include(CTest)
-add_test(NAME ddd_tests COMMAND ddd_tests)
+include(Catch)
+catch_discover_tests(ddd_tests)
