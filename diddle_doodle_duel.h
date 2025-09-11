@@ -4,10 +4,10 @@
 
 #include <entt/entity/registry.hpp>
 
-class DiddleDoodleDuel : public engine::Game {
+class diddle_doodle_duel : public engine::Game {
 public:
-    explicit DiddleDoodleDuel(engine::IRenderer& renderer);
-    ~DiddleDoodleDuel() override;
+    explicit diddle_doodle_duel(engine::IRenderer& renderer);
+    ~diddle_doodle_duel() override;
     void onInitialize() override;
     void onUpdate(float deltaTime) override;
     void onRender() override;

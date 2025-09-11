@@ -24,8 +24,8 @@ endif()
 # --- Game executable ---
 add_executable(${PROJECT_NAME}
         main.cpp
-        DiddleDoodleDuel.cpp
-        DiddleDoodleDuel.h
+        diddle_doodle_duel.cpp
+        diddle_doodle_duel.h
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)

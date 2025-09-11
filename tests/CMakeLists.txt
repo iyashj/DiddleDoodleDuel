@@ -5,7 +5,7 @@ find_package(Catch2 3 REQUIRED)
 
 add_executable(ddd_tests
     test_app.cpp
-    ../DiddleDoodleDuel.cpp
+        ../diddle_doodle_duel.cpp
 )
 
 target_link_libraries(ddd_tests PRIVATE

@@ -1,4 +1,4 @@
-#include "DiddleDoodleDuel.h"
+#include "diddle_doodle_duel.h"
 #include <entt/entity/registry.hpp>
 
 struct Input {
@@ -25,13 +25,13 @@ struct Player : Renderable {
     float rotation{18000.0F};
 };
 
-DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer) : Game(renderer) {
+diddle_doodle_duel::diddle_doodle_duel(engine::IRenderer& renderer) : Game(renderer) {
     SetTargetFPS(60);
 }
 
-DiddleDoodleDuel::~DiddleDoodleDuel() = default;
+diddle_doodle_duel::~diddle_doodle_duel() = default;
 
-void DiddleDoodleDuel::onInitialize() {
+void diddle_doodle_duel::onInitialize() {
     title = "Diddle Doodle Duel - ECS Base";
     const auto player = registry.create();
 
@@ -41,7 +41,7 @@ void DiddleDoodleDuel::onInitialize() {
     registry.emplace<Player>(player, 250.0F);
     registry.emplace<Input>(player, Input{ .rotateLeft = false, .rotateRight = false } );
 }
-void DiddleDoodleDuel::onUpdate(const float deltaTime) {
+void diddle_doodle_duel::onUpdate(const float deltaTime) {
 
     const auto players = registry.view<Player, Input>();
     players.each([&](const auto&, Input& input) {
@@ -77,7 +77,7 @@ void DiddleDoodleDuel::onUpdate(const float deltaTime) {
     }
 }
 
-void DiddleDoodleDuel::checkBoundsAgainstScreen() {
+void diddle_doodle_duel::checkBoundsAgainstScreen() {
     const auto playerViews = registry.view<Player, Position>();
     playerViews.each([this](const Player& player, Position& position) {
         if (position.pos.x - player.radius < 0.0F) {
@@ -96,7 +96,7 @@ void DiddleDoodleDuel::checkBoundsAgainstScreen() {
 }
 
 
-void DiddleDoodleDuel::onRender() {
+void diddle_doodle_duel::onRender() {
     const auto renderViews = registry.view<Position, Renderable>();
     renderViews.each([&](const Position& position, const Renderable& renderable) {
         this->getRenderer().drawCircle(position.pos, renderable.radius, renderable.color);

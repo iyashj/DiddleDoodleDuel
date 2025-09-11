@@ -1,4 +1,4 @@
-#include "DiddleDoodleDuel.h"
+#include "diddle_doodle_duel.h"
 #include "humble_engine.h"
 #include "rendering/renderer.h"
 #include <string>
@@ -10,7 +10,7 @@ int main() {
         return 1;
     }
 
-    DiddleDoodleDuel game(renderer);
+    diddle_doodle_duel game(renderer);
     game.run();
 
     return 0;

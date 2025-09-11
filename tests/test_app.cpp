@@ -1,10 +1,10 @@
-#include <catch2/catch_test_macros.hpp>
+#include "../diddle_doodle_duel.h"
 #include "core/engine_core.h"
 #include "logging/logger.h"
+#include "rendering/renderer.h"
+#include <catch2/catch_test_macros.hpp>
 #include <entt/entt.hpp>
 #include <iterator>
-#include "../DiddleDoodleDuel.h"
-#include "rendering/renderer.h"
 
 struct TestPosition {
     float x{0.0f}, y{0.0f};
@@ -119,7 +119,7 @@ TEST_CASE("DiddleDoodleDuel game initialization", "[game][ddd]") {
     auto init = renderer.initialize(800, 600, "Test Window");
     REQUIRE(init.has_value());
     
-    DiddleDoodleDuel game(renderer);
+    diddle_doodle_duel game(renderer);
     
     SECTION("Game initializes without crashing") {
         REQUIRE_NOTHROW(game.onInitialize());
