@@ -8,6 +8,8 @@ project(DiddleDoodleDuel
         LANGUAGES CXX
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Options
 option(DDD_ENABLE_LTO "Enable Link Time Optimization" ON)
 option(DDD_ENABLE_SANITIZERS "Enable sanitizers (Debug only)" OFF)
@@ -24,12 +26,16 @@ endif()
 # --- Game executable ---
 add_executable(${PROJECT_NAME}
         main.cpp
-        diddle_doodle_duel.cpp
-        diddle_doodle_duel.h
+        src/diddle_doodle_duel.cpp
+        src/diddle_doodle_duel.h
         src/components/movement_structs.h
         src/components/drawing_structs.h
         src/components/player.h
-        src/components/inputs.h
+        src/components/input_structs.h
+        src/systems/paint.h
+        src/systems/movement.h
+        src/systems/input.h
+        src/systems/ui.h
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
@@ -54,14 +60,21 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE
             -Wall -Wextra -Wpedantic -Wshadow -Wconversion
             $<$<CONFIG:Debug>:-g3 -O0 -fno-omit-frame-pointer>
+            $<$<CONFIG:RelWithDebInfo>:-O2 -g -fno-omit-frame-pointer>
             $<$<CONFIG:Release>:-O3 -DNDEBUG>
     )
 elseif(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE
             /W4 /permissive- /utf-8
             $<$<CONFIG:Debug>:/Od /Zi>
+            $<$<CONFIG:RelWithDebInfo>:/O2 /Zi>
             $<$<CONFIG:Release>:/O2 /DNDEBUG>
             /MP
+    )
+    # Ensure PDBs are generated for debug builds
+    target_link_options(${PROJECT_NAME} PRIVATE
+            $<$<CONFIG:Debug>:/DEBUG>
+            $<$<CONFIG:RelWithDebInfo>:/DEBUG>
     )
 endif()
 
@@ -75,11 +88,13 @@ if(DDD_ENABLE_SANITIZERS AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     endforeach()
 endif()
 
-# LTO
+# LTO only for non-Debug configs
 if(DDD_ENABLE_LTO)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT ipo_supported OUTPUT error)
     if(ipo_supported)
-        set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+        # Enable IPO per-config to avoid impacting Debug symbols
+        set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+        set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
     endif()
 endif()

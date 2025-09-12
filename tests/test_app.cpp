@@ -1,6 +1,6 @@
-#include "../diddle_doodle_duel.h"
 #include "../src/components/movement_structs.h"
 #include "../src/components/player.h"
+#include "../src/diddle_doodle_duel.h"
 #include "core/engine_core.h"
 #include "logging/logger.h"
 #include "rendering/renderer.h"
@@ -97,7 +97,7 @@ TEST_CASE("DiddleDoodleDuel game initialization", "[game][ddd]") {
     auto init = renderer.initialize(800, 600, "Test Window");
     REQUIRE(init.has_value());
     
-    diddle_doodle_duel game(renderer);
+    DiddleDoodleDuel game(renderer);
     
     SECTION("Game initializes without crashing") {
         REQUIRE_NOTHROW(game.onInitialize());

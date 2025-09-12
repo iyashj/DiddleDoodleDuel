@@ -1,6 +1,6 @@
-#include "diddle_doodle_duel.h"
 #include "humble_engine.h"
 #include "rendering/renderer.h"
+#include "src/diddle_doodle_duel.h"
 #include <string>
 
 int main() {
@@ -10,7 +10,7 @@ int main() {
         return 1;
     }
 
-    diddle_doodle_duel game(renderer);
+    DiddleDoodleDuel game(renderer);
     game.run();
 
     return 0;
