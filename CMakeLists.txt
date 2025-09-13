@@ -30,7 +30,6 @@ add_executable(${PROJECT_NAME}
         src/diddle_doodle_duel.h
         src/components/movement_structs.h
         src/components/drawing_structs.h
-        src/components/player.h
         src/components/input_structs.h
         src/systems/paint.h
         src/systems/movement.h

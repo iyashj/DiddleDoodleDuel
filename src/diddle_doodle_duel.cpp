@@ -16,7 +16,29 @@ DiddleDoodleDuel::~DiddleDoodleDuel() = default;
 
 void DiddleDoodleDuel::onInitialize() {
     title = "Diddle Doodle Duel - ECS Base";
-    createPlayer();
+    createPlayer(Vector2 {.x = 640.0F, .y = 360.0F},
+        KEY_A,
+        KEY_D,
+        GOLD,
+        25.0F);
+
+    createPlayer(Vector2 {.x = 300.0F, .y = 360.0F},
+        KEY_LEFT,
+        KEY_RIGHT,
+        BLUE,
+        25.0F);
+
+    createPlayer(Vector2 {.x = 640.0F, .y = 360.0F},
+        KEY_LEFT,
+        KEY_RIGHT,
+        GREEN,
+        25.0f);
+
+    createPlayer(Vector2 {.x = 640.0F, .y = 222.0F},
+        KEY_A,
+        KEY_D,
+        RED,
+        25.0f);
 }
 
 void DiddleDoodleDuel::onUpdate(const float deltaTime) {
@@ -30,12 +52,17 @@ void DiddleDoodleDuel::onRender() {
     this->uiSystem->render(this->getRenderer(), title);
 }
 
-void DiddleDoodleDuel::createPlayer() {
+void DiddleDoodleDuel::createPlayer(
+    Vector2 startPosition,
+    const KeyboardKey rotateLeftKey,
+    const KeyboardKey rotateRightKey,
+    const Color brushColor,
+    const float brushStrokeSize) {
+
     const auto player = registry.create();
-    registry.emplace<Position>(player, Vector2{640.0F, 360.0F});
+    registry.emplace<Position>(player, startPosition);
     registry.emplace<Velocity>(player);
-    registry.emplace<Renderable>(player, 25.0F, Color{0, 229, 255, 255});
-    registry.emplace<Player>(player, 250.0F);
+    registry.emplace<Renderable>(player, brushStrokeSize, brushColor);
     registry.emplace<InputAction>(player, InputAction{ .rotateLeft = false, .rotateRight = false } );
-    registry.emplace<InputMapping>(player, InputMapping(KEY_A, KEY_D) );
+    registry.emplace<InputMapping>(player, InputMapping(rotateLeftKey, rotateRightKey) );
 }

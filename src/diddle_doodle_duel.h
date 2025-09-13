@@ -25,7 +25,11 @@ private:
     std::unique_ptr<InputSystem> inputSystem;
     std::unique_ptr<UISystem> uiSystem;
 
-    void createPlayer();
+    void createPlayer(Vector2 startPosition,
+    KeyboardKey rotateLeftKey,
+    KeyboardKey rotateRightKey,
+    Color brushColor,
+    float brushStrokeSize);
 };
 
 #endif // DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H

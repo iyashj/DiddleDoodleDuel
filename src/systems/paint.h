@@ -23,8 +23,8 @@ struct PaintSystem {
 
     void update(entt::registry& registry) {
         BeginTextureMode(*renderTexture);
-        const auto view = registry.view<Player, Position, Renderable>();
-        view.each([&](const Player&, const Position& position, const Renderable& renderable) {
+        const auto view = registry.view<Position, Renderable>();
+        view.each([&](const Position& position, const Renderable& renderable) {
             DrawCircle(static_cast<int>(position.pos.x), static_cast<int>(position.pos.y), renderable.radius, renderable.color);
             paintCPUBuffer(position.pos, renderable.radius, renderable.color);
         });
