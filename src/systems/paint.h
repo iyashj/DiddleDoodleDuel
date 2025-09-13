@@ -2,7 +2,6 @@
 #define DIDDLEDOODLEDUEL_PAINT_H
 #include "../components/drawing_structs.h"
 #include "../components/movement_structs.h"
-#include "../components/player.h"
 #include "rendering/irenderer.h"
 #include "resources/resource_manager.h"
 #include <entt/entity/registry.hpp>

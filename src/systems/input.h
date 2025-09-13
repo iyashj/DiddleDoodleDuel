@@ -1,7 +1,6 @@
 #ifndef DIDDLEDOODLEDUEL_INPUT_H
 #define DIDDLEDOODLEDUEL_INPUT_H
 #include "../components/input_structs.h"
-#include "../components/player.h"
 #include <entt/entity/registry.hpp>
 
 struct InputSystem {

@@ -2,7 +2,6 @@
 #include "components/drawing_structs.h"
 #include "components/input_structs.h"
 #include "components/movement_structs.h"
-#include "components/player.h"
 #include <entt/entity/registry.hpp>
 
 DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
