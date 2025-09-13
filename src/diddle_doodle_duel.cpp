@@ -5,15 +5,32 @@
 #include "components/player.h"
 #include <entt/entity/registry.hpp>
 
-DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer) : Game(renderer), paintSystem(PaintSystem(canvasPixel, renderer)) {
+DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
+: Game(renderer)
+{
     SetTargetFPS(60);
+    paintSystem = std::make_unique<PaintSystem>(renderer);
 }
 
 DiddleDoodleDuel::~DiddleDoodleDuel() = default;
 
 void DiddleDoodleDuel::onInitialize() {
     title = "Diddle Doodle Duel - ECS Base";
+    createPlayer();
+}
 
+void DiddleDoodleDuel::onUpdate(const float deltaTime) {
+    this->inputSystem->update(registry);
+    this->movementSystem->update(registry, deltaTime);
+    this->paintSystem->update(registry);
+}
+
+void DiddleDoodleDuel::onRender() {
+    this->paintSystem->render();
+    this->uiSystem->render(this->getRenderer(), title);
+}
+
+void DiddleDoodleDuel::createPlayer() {
     const auto player = registry.create();
     registry.emplace<Position>(player, Vector2{640.0F, 360.0F});
     registry.emplace<Velocity>(player);
@@ -21,24 +38,4 @@ void DiddleDoodleDuel::onInitialize() {
     registry.emplace<Player>(player, 250.0F);
     registry.emplace<InputAction>(player, InputAction{ .rotateLeft = false, .rotateRight = false } );
     registry.emplace<InputMapping>(player, InputMapping(KEY_A, KEY_D) );
-
-    initializeCanvasBuffer();
-}
-
-void DiddleDoodleDuel::initializeCanvasBuffer() {
-    const auto size = static_cast<size_t>(getRenderer().getWindowWidth() * getRenderer().getWindowHeight());
-    canvasPixel.assign(size, BLANK);
-}
-
-void DiddleDoodleDuel::onUpdate(const float deltaTime) {
-    inputSystem.update(registry);
-    movementSystem.update(registry, deltaTime);
-    paintSystem.update(registry);
-}
-
-void DiddleDoodleDuel::createPlayers() {}
-
-void DiddleDoodleDuel::onRender() {
-    uiSystem.render(this->getRenderer(), title);
-    paintSystem.render(registry, this->getRenderer());
 }

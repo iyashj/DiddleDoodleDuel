@@ -13,22 +13,19 @@ public:
     explicit DiddleDoodleDuel(engine::IRenderer& renderer);
     ~DiddleDoodleDuel() override;
     void onInitialize() override;
-    void initializeCanvasBuffer();
     void onUpdate(float deltaTime) override;
     void onRender() override;
 
 private:
     entt::registry registry;
     std::string title;
-    std::vector<Color> canvasPixel;
 
-    PaintSystem paintSystem;
-    MovementSystem movementSystem;
-    InputSystem inputSystem;
-    UISystem uiSystem;
+    std::unique_ptr<PaintSystem> paintSystem;
+    std::unique_ptr<MovementSystem> movementSystem;
+    std::unique_ptr<InputSystem> inputSystem;
+    std::unique_ptr<UISystem> uiSystem;
 
-    void checkBoundsAgainstScreen();
-    void createPlayers();
+    void createPlayer();
 };
 
 #endif // DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
