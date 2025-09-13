@@ -24,6 +24,8 @@ class DoodleDuelConan(ConanFile):
         self.requires("fmt/10.2.1")
         # Add entt for ECS functionality
         self.requires("entt/3.15.0")
+        # Dear ImGui (vanilla core library only)
+        self.requires("imgui/1.91.0")
 
     def build_requirements(self):
         if self.options.build_tests:
