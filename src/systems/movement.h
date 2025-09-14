@@ -1,7 +1,6 @@
 #ifndef DIDDLEDOODLEDUEL_MOVEMENT_H
 #define DIDDLEDOODLEDUEL_MOVEMENT_H
-#include "../components/input_structs.h"
-#include "../components/movement_structs.h"
+
 #include <algorithm>
 #include <entt/entity/registry.hpp>
 #include <fmt/format.h>

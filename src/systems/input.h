@@ -1,6 +1,7 @@
 #ifndef DIDDLEDOODLEDUEL_INPUT_H
 #define DIDDLEDOODLEDUEL_INPUT_H
-#include "../components/input_structs.h"
+#include "components/input_action.h"
+#include "components/input_mapping.h"
 #include <entt/entity/registry.hpp>
 
 struct InputSystem {

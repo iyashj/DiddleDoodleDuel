@@ -1,7 +1,7 @@
 #include "diddle_doodle_duel.h"
-#include "components/drawing_structs.h"
-#include "components/input_structs.h"
-#include "components/movement_structs.h"
+#include "components/input_action.h"
+#include "components/input_mapping.h"
+#include "components/renderable.h"
 #include <entt/entity/registry.hpp>
 
 DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
@@ -13,7 +13,7 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
     movementSystem = std::make_unique<MovementSystem>();
     inputSystem = std::make_unique<InputSystem>();
     uiSystem = std::make_unique<UISystem>();
-    imguiSystem = std::make_unique<ImGuiSystem>();
+    collisionSystem = std::make_unique<CollisionSystem>();
 }
 
 DiddleDoodleDuel::~DiddleDoodleDuel() = default;
@@ -53,6 +53,7 @@ void DiddleDoodleDuel::onUpdate(const float deltaTime) {
     this->inputSystem->update(registry);
     this->movementSystem->update(registry, deltaTime);
     this->paintSystem->update(registry);
+    this->collisionSystem->update(registry, deltaTime);
 }
 
 void DiddleDoodleDuel::onRender() {
@@ -70,12 +71,13 @@ void DiddleDoodleDuel::createPlayer(
 
     const auto player = registry.create();
     registry.emplace<Position>(player, startPosition);
-    registry.emplace<Velocity>(player);
 
+    registry.emplace<Velocity>(player, Velocity{.velocity = {0,0}, .rotation = 0, .speed = 5000.0F, .rotationSpeed = 180.0F});
     auto& velocity = registry.get<Velocity>(player);
     velocity.rotation = initialRotation;
 
-    registry.emplace<Renderable>(player, brushStrokeSize, brushColor);
+    registry.emplace<Renderable>(player, Renderable{.radius = brushStrokeSize, .color = brushColor});
     registry.emplace<InputAction>(player, InputAction{ .rotateLeft = false, .rotateRight = false } );
-    registry.emplace<InputMapping>(player, InputMapping(rotateLeftKey, rotateRightKey) );
+    registry.emplace<InputMapping>(player, InputMapping{ .rotateLeftKey = rotateLeftKey, .rotateRightKey = rotateRightKey} );
+    registry.emplace<CollisionState>(player, CollisionState{ .isInCollision = false, .bounceTimer = 0.0F, .bounceVelocity = Vector2 {0,0}});
 }

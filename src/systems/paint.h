@@ -1,7 +1,6 @@
 #ifndef DIDDLEDOODLEDUEL_PAINT_H
 #define DIDDLEDOODLEDUEL_PAINT_H
-#include "../components/drawing_structs.h"
-#include "../components/movement_structs.h"
+#include "components/renderable.h"
 #include "rendering/irenderer.h"
 #include "resources/resource_manager.h"
 #include <entt/entity/registry.hpp>
@@ -31,7 +30,7 @@ struct PaintSystem {
         initialiseTexture();
     }
 
-    void update(entt::registry& registry) {
+    void update(entt::registry& registry) const {
         const auto view = registry.view<Position, Renderable>();
         bool needsPainting = false;
 
