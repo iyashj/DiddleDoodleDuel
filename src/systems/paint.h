@@ -6,39 +6,68 @@
 #include "resources/resource_manager.h"
 #include <entt/entity/registry.hpp>
 #include <raylib.h>
+#include <raymath.h>
+#include <unordered_map>
 
 struct PaintSystem {
     explicit PaintSystem(engine::IWindowHandler& windowHandler) : windowHandler(windowHandler) {
+
+        if (const auto result = engine::resources::loadTexture("resources/textures/brush_base.png");
+            result.has_value()) {
+            this->brushBase = result.value();
+        }
+
+        if (const auto result = engine::resources::loadTexture("resources/textures/brush_mask.png");
+            result.has_value()) {
+            this->brushMask = result.value();
+        }
 
         const auto width = windowHandler.getWindowWidth();
         const auto height = windowHandler.getWindowHeight();
 
         renderTexture = std::make_unique<RenderTexture2D>(LoadRenderTexture(width, height));
         shader = std::make_unique<Shader>(LoadShader(nullptr, "resources/shaders/watercolor.fs"));
-        canvasPixel.assign(static_cast<size_t>(width) * static_cast<size_t>(height), WHITE);
 
         initialiseTexture();
     }
 
     void update(entt::registry& registry) {
-        BeginTextureMode(*renderTexture);
         const auto view = registry.view<Position, Renderable>();
-        view.each([&](const Position& position, const Renderable& renderable) {
-            DrawCircle(static_cast<int>(position.pos.x), static_cast<int>(position.pos.y), renderable.radius, renderable.color);
-            paintCPUBuffer(position.pos, renderable.radius, renderable.color);
-        });
-        EndTextureMode();
+        bool needsPainting = false;
+
+        for (auto entity : view) {
+            const auto& [pos] = view.get<Position>(entity);
+            const auto& [radius, color] = view.get<Renderable>(entity);
+            
+            // Store last positions to only paint when actually moving
+            static std::unordered_map<entt::entity, Vector2> lastPositions;
+            
+            auto it = lastPositions.find(entity);
+            if (it == lastPositions.end() || 
+                Vector2Distance(it->second, pos) > radius * 0.1f) {
+                lastPositions[entity] = pos;
+                needsPainting = true;
+
+                BeginTextureMode(*renderTexture);
+                DrawCircle(static_cast<int>(pos.x), static_cast<int>(pos.y), radius, color);
+                EndTextureMode();
+            }
+        }
     }
 
-    void render() const {
+    void render(
+        const entt::registry& registry,
+        engine::IDrawHandler& drawHandler) const {
         drawTexture();
+        drawBrush(registry, drawHandler);
     }
 
 private:
     const engine::IWindowHandler& windowHandler;
     std::unique_ptr<RenderTexture2D> renderTexture;
     std::unique_ptr<Shader> shader;
-    std::vector<Color> canvasPixel;
+    Texture2D brushBase{};
+    Texture2D brushMask{};
 
     void initialiseTexture() const {
         BeginTextureMode(*renderTexture);
@@ -49,27 +78,43 @@ private:
     void drawTexture() const{
         BeginShaderMode(*shader);
         DrawTextureRec(renderTexture->texture,
-            Rectangle{0,0, static_cast<float>(renderTexture->texture.width), static_cast<float>(renderTexture->texture.height)},
-            Vector2{0.0f, 0.0f},
+            Rectangle{0,0, static_cast<float>(renderTexture->texture.width), static_cast<float>(-renderTexture->texture.height)},
+            Vector2{0.0F, 0.0F},
             WHITE);
         EndShaderMode();
     }
-    void paintCPUBuffer(const Vector2& centre, float radius, const Color& color) {
-        int w = windowHandler.getWindowWidth();
-        int h = windowHandler.getWindowHeight();
-        int xInInt = static_cast<int>(centre.x);
-        int yInInt = static_cast<int>(centre.y);
-        int radiusInInt = static_cast<int>(radius);
-        for (int y = -radiusInInt; y <= radiusInInt; y++) {
-            for (int x = -radiusInInt; x <= radiusInInt; x++) {
-                if (x*x + y*y <= radiusInInt*radiusInInt) {
-                    int draw_x = xInInt + x;
-                    int draw_y = yInInt + y;
-                    if (draw_x >= 0 && draw_x < w && draw_y >= 0 && draw_y < h) {
-                        canvasPixel[draw_y * w + draw_x] = color;
-                    }
-                }
-            }
+
+    void drawBrush(const entt::registry& registry, engine::IDrawHandler& drawHandler) const {
+        for (const auto view = registry.view<const Position, const Renderable>();
+             const auto& entity : view) {
+            const auto& [pos] = view.get<const Position>(entity);
+            const auto& [radius, color] = view.get<const Renderable>(entity);
+
+            const float brushSize = radius * 2.0F;
+
+            const Rectangle destinationRect = {
+                pos.x,
+                pos.y,
+                brushSize,
+                brushSize
+            };
+
+            Vector2 origin = {brushSize / 2.0F, brushSize / 2.0F};
+            constexpr float noRotation = 0.0F;
+
+            drawHandler.drawTexture(
+                brushBase, {0,0, static_cast<float>(brushBase.width), static_cast<float>(brushBase.height)},
+                destinationRect,
+                origin,
+                noRotation,
+                WHITE);
+
+            drawHandler.drawTexture(
+                brushMask, {0, 0, static_cast<float>(brushMask.width), static_cast<float>(brushMask.height)},
+                destinationRect,
+                origin,
+                noRotation,
+                color);
         }
     }
 };

@@ -15,6 +15,13 @@ option(DDD_ENABLE_LTO "Enable Link Time Optimization" ON)
 option(DDD_ENABLE_SANITIZERS "Enable sanitizers (Debug only)" OFF)
 set(DDD_SANITIZERS "address;undefined" CACHE STRING "List of sanitizers to enable in Debug builds")
 
+# --- Conan Dependencies ---
+# Find all packages required by the project and sub-projects before configuring them.
+find_package(raylib REQUIRED)
+find_package(fmt REQUIRED)
+find_package(entt REQUIRED)
+find_package(imgui REQUIRED)
+
 # --- Dependencies via submodule ---
 # Expect the engine to be available as a git submodule at humble-engine/
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/CMakeLists.txt")
@@ -35,6 +42,8 @@ add_executable(${PROJECT_NAME}
         src/systems/movement.h
         src/systems/input.h
         src/systems/ui.h
+        src/systems/imgui_system.h
+        src/systems/collision.h
 )
 
 add_custom_command(
@@ -47,12 +56,20 @@ add_custom_command(
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE HumbleEngine::HumbleEngine)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/include)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 # Link entt if available
 find_package(entt REQUIRED)
 if(entt_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
+endif()
+
+find_package(imgui REQUIRED)
+if(imgui_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 endif()
 
 # --- Tests ---
