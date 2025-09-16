@@ -34,8 +34,8 @@ struct MovementSystem {
             velocity.x = cosf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
             velocity.y = sinf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
 
-            position.x += velocity.x * deltaTime;
-            position.y += velocity.y * deltaTime;
+            position.x += velocity.x;
+            position.y += velocity.y;
 
             position.x = std::clamp(position.x, 25.0F, 1255.0F);
             position.y = std::clamp(position.y, 25.0F, 695.0F);
