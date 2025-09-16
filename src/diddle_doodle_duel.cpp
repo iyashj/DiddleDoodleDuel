@@ -43,7 +43,7 @@ void DiddleDoodleDuel::onInitialize() {
         KEY_RIGHT,
         BLUE);
 
-    createPlayer(Vector2 {.x = 640.0F, .y = 360.0F},
+    createPlayer(Vector2 {.x = 980.0F, .y = 360.0F},
         90.0F,
         KEY_LEFT,
         KEY_RIGHT,
