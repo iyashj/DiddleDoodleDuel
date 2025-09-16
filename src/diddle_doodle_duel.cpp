@@ -9,56 +9,68 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
 {
     SetTargetFPS(60);
 
-    paintSystem = std::make_unique<PaintSystem>(renderer);
-    movementSystem = std::make_unique<MovementSystem>();
-    inputSystem = std::make_unique<InputSystem>();
-    uiSystem = std::make_unique<UISystem>();
-    collisionSystem = std::make_unique<CollisionSystem>();
+    gameConfig = GameConfig {
+        .brushSize = 25.0F,
+        .brushMovementSpeed = 50.0F,
+        .collisionForceMultiplier = 2.0F
+    };
+
+    imguiSystem = std::make_unique<ImGuiSystem>(ImGuiSystem(gameConfig));
+    paintSystem = std::make_unique<PaintSystem>(PaintSystem(this->getRenderer(), gameConfig, registry));
+    movementSystem = std::make_unique<MovementSystem>(MovementSystem(registry, gameConfig));
+    inputSystem = std::make_unique<InputSystem>(InputSystem(registry));
+    uiSystem = std::make_unique<UISystem>(this->getRenderer());
+    collisionSystem = std::make_unique<CollisionSystem>(CollisionSystem(registry, gameConfig));
 }
 
 DiddleDoodleDuel::~DiddleDoodleDuel() = default;
 
 void DiddleDoodleDuel::onInitialize() {
     title = "Diddle Doodle Duel - ECS Base";
+    
+    // Initialize ImGui
+    imguiSystem->initialize();
+    
     createPlayer(Vector2 {.x = 640.0F, .y = 360.0F},
         0.0F,
         KEY_A,
         KEY_D,
-        GOLD,
-        25.0F);
+        GOLD);
 
     createPlayer(Vector2 {.x = 300.0F, .y = 360.0F},
         45.0F,
         KEY_LEFT,
         KEY_RIGHT,
-        BLUE,
-        25.0F);
+        BLUE);
 
     createPlayer(Vector2 {.x = 640.0F, .y = 360.0F},
         90.0F,
         KEY_LEFT,
         KEY_RIGHT,
-        GREEN,
-        25.0f);
+        GREEN);
 
     createPlayer(Vector2 {.x = 640.0F, .y = 222.0F},
         135.0F,
         KEY_A,
         KEY_D,
-        RED,
-        25.0f);
+        RED);
 }
 
 void DiddleDoodleDuel::onUpdate(const float deltaTime) {
-    this->inputSystem->update(registry);
-    this->movementSystem->update(registry, deltaTime);
-    this->paintSystem->update(registry);
-    this->collisionSystem->update(registry, deltaTime);
+    this->inputSystem->update();
+    this->movementSystem->update(deltaTime);
+    this->paintSystem->update();
+    this->collisionSystem->update(deltaTime);
 }
 
 void DiddleDoodleDuel::onRender() {
-    this->paintSystem->render(this->registry, this->getRenderer());
-    this->uiSystem->render(this->getRenderer(), title);
+    this->paintSystem->render();
+    this->uiSystem->render(title);
+    
+    // Render ImGui
+    imguiSystem->beginFrame();
+    imguiSystem->renderGameUI(title, GetFPS());
+    imguiSystem->endFrame();
 }
 
 void DiddleDoodleDuel::createPlayer(
@@ -66,17 +78,16 @@ void DiddleDoodleDuel::createPlayer(
     const float initialRotation,
     const KeyboardKey rotateLeftKey,
     const KeyboardKey rotateRightKey,
-    const Color brushColor,
-    const float brushStrokeSize) {
+    const Color brushColor) {
 
     const auto player = registry.create();
     registry.emplace<Position>(player, startPosition);
 
-    registry.emplace<Velocity>(player, Velocity{.velocity = {0,0}, .rotation = 0, .speed = 5000.0F, .rotationSpeed = 180.0F});
+    registry.emplace<Velocity>(player, Velocity{.velocity = {0,0}, .rotation = 0, .speed = gameConfig.brushMovementSpeed, .rotationSpeed = 180.0F});
     auto& velocity = registry.get<Velocity>(player);
     velocity.rotation = initialRotation;
 
-    registry.emplace<Renderable>(player, Renderable{.radius = brushStrokeSize, .color = brushColor});
+    registry.emplace<Renderable>(player, Renderable{.radius = gameConfig.brushSize, .color = brushColor});
     registry.emplace<InputAction>(player, InputAction{ .rotateLeft = false, .rotateRight = false } );
     registry.emplace<InputMapping>(player, InputMapping{ .rotateLeftKey = rotateLeftKey, .rotateRightKey = rotateRightKey} );
     registry.emplace<CollisionState>(player, CollisionState{ .isInCollision = false, .bounceTimer = 0.0F, .bounceVelocity = Vector2 {0,0}});

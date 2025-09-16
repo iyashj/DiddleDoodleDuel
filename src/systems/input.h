@@ -5,7 +5,12 @@
 #include <entt/entity/registry.hpp>
 
 struct InputSystem {
-    void update(entt::registry& registry) {
+    entt::registry& registry;
+
+    explicit InputSystem(entt::registry& registry) : registry(registry) {
+    }
+
+    void update() {
         const auto players = registry.view<InputAction, InputMapping>();
         players.each([&](InputAction& inputAction, const InputMapping& inputMapping) {
             inputAction.rotateLeft = IsKeyDown(inputMapping.rotateLeftKey);

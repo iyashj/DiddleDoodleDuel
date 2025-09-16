@@ -5,9 +5,18 @@
 #include <entt/entity/registry.hpp>
 #include <fmt/format.h>
 #include <iostream>
+#include "game_config.h"
 
 struct MovementSystem {
-    void update(entt::registry& registry, const float deltaTime) {
+    entt::registry& registry;
+    const GameConfig& config;
+
+    explicit MovementSystem(entt::registry& registry, GameConfig& config)
+    : registry(registry), config(config)
+    {
+    }
+
+    void update(const float deltaTime) {
         for (const auto movementView = registry.view<Position, Velocity, InputAction>();
             const auto entity : movementView) {
             const auto& [rotateLeft, rotateRight] = movementView.get<InputAction>(entity);
@@ -22,8 +31,8 @@ struct MovementSystem {
                 rotation += rotationSpeed * deltaTime;
             }
 
-            velocity.x = cosf(rotation * DEG2RAD) * speed * deltaTime;
-            velocity.y = sinf(rotation * DEG2RAD) * speed * deltaTime;
+            velocity.x = cosf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
+            velocity.y = sinf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
 
             position.x += velocity.x * deltaTime;
             position.y += velocity.y * deltaTime;

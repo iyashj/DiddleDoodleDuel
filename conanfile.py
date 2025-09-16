@@ -25,7 +25,18 @@ class DoodleDuelConan(ConanFile):
         # Add entt for ECS functionality
         self.requires("entt/3.15.0")
         # Dear ImGui (vanilla core library only)
-        self.requires("imgui/1.91.0")
+        self.requires("imgui/1.89.9")
+        # GLFW needed for ImGui platform backend
+        self.requires("glfw/3.4")
+
+    def configure(self):
+        # Configure ImGui options - some packages may not support these options
+        try:
+            self.options["imgui"].backend_glfw = True
+            self.options["imgui"].backend_opengl3 = True
+        except:
+            # If backend options don't exist, the package may include them by default
+            pass
 
     def build_requirements(self):
         if self.options.build_tests:

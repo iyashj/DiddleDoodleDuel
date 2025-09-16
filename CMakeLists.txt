@@ -41,6 +41,8 @@ add_executable(${PROJECT_NAME}
         src/systems/input.h
         src/systems/ui.h
         src/systems/collision.h
+        src/systems/imgui_system.h
+        src/systems/imgui_system.cpp
         src/components/collision_state.h
         src/components/velocity.h
         src/components/position.h
@@ -63,15 +65,87 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-# Link entt if available
 find_package(entt REQUIRED)
 if(entt_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
 endif()
 
-find_package(imgui REQUIRED)
+# Ensure third_party/imgui is in the include path for backend headers
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+
+
+# Always link glfw (regardless of imgui or backends)
+set(GLFW_TARGET_FOUND OFF)
+foreach(glfw_candidate IN ITEMS glfw glfw3 glfw::glfw)
+    if(TARGET ${glfw_candidate})
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${glfw_candidate})
+        get_target_property(GLFW_INCLUDE_DIRS ${glfw_candidate} INTERFACE_INCLUDE_DIRECTORIES)
+        if(GLFW_INCLUDE_DIRS)
+            target_include_directories(${PROJECT_NAME} PRIVATE ${GLFW_INCLUDE_DIRS})
+        endif()
+        set(GLFW_TARGET_FOUND ON)
+        break()
+    endif()
+endforeach()
+if(NOT GLFW_TARGET_FOUND)
+    message(FATAL_ERROR "No suitable GLFW target found; make sure Conan has provided glfw (glfw, glfw3, or glfw::glfw)")
+endif()
+
+# Ensure GLFW headers are visible
+foreach(glfw_target IN ITEMS glfw::glfw glfw3::glfw glfw)
+    if(TARGET ${glfw_target})
+        get_target_property(_glfw_inc ${glfw_target} INTERFACE_INCLUDE_DIRECTORIES)
+        if(_glfw_inc)
+            target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc})
+        endif()
+    endif()
+endforeach()
+
 if(imgui_FOUND)
+    # Link core ImGui
     target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
+    
+    # Add our local backend include directories and sources
+    target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends")
+    
+    # Add backend source files
+    target_sources(${PROJECT_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_glfw.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_opengl3.cpp"
+    )
+
+    # Link GLFW if available under any known target name
+    if(TARGET glfw::glfw)
+        target_link_libraries(${PROJECT_NAME} PRIVATE glfw::glfw)
+    elseif(TARGET glfw3::glfw)
+        target_link_libraries(${PROJECT_NAME} PRIVATE glfw3::glfw)
+    elseif(TARGET glfw)
+        target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+    endif()
+
+    # Link OpenGL from Conan (opengl::opengl) or CMake if available
+    if(TARGET opengl::opengl)
+        target_link_libraries(${PROJECT_NAME} PRIVATE opengl::opengl)
+    else()
+        find_package(OpenGL REQUIRED)
+        target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
+    endif()
+
+    # Do not add vendored imgui_impl_glfw.cpp or imgui_impl_opengl3.cpp; use Conan-provided ImGui only
+endif()
+
+# Fallback: ensure GLFW include directories are visible even if generator expressions fail
+if(TARGET glfw::glfw)
+    get_target_property(_glfw_inc glfw::glfw INTERFACE_INCLUDE_DIRECTORIES)
+    if(_glfw_inc)
+        target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc})
+    endif()
+endif()
+if(TARGET glfw)
+    get_target_property(_glfw_inc2 glfw INTERFACE_INCLUDE_DIRECTORIES)
+    if(_glfw_inc2)
+        target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc2})
+    endif()
 endif()
 
 # --- Tests ---
@@ -123,3 +197,4 @@ if(DDD_ENABLE_LTO)
         set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
     endif()
 endif()
+

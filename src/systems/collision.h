@@ -10,11 +10,15 @@
 #include <raymath.h>
 
 struct CollisionSystem {
-
     float bounceDuration = 0.5F;
-    float forceMultiplier = 1.0F;
 
-    void update(entt::registry& registry, const float& deltaTime) const {
+    entt::registry& registry;
+    GameConfig& gameConfig;
+
+    explicit CollisionSystem(entt::registry& registry, GameConfig& gameConfig) : registry(registry), gameConfig(gameConfig) {
+    }
+
+    void update(const float& deltaTime) const {
 
         for (const auto view = registry.view<Position, CollisionState, Renderable, Velocity>();
              const auto entityA : view) {
@@ -33,8 +37,8 @@ struct CollisionSystem {
                 if (auto [positionAAndBCanCollide, resultantVector] =
                     canCollide(positionA, positionB,renderableA, renderableB); positionAAndBCanCollide) {
 
-                    applyCollision(registry.get<CollisionState>(entityA), resultantVector, velocityA, deltaTime);
-                    applyCollision(registry.get<CollisionState>(entityB), {-resultantVector.x, -resultantVector.y}, velocityB, deltaTime);
+                    applyCollision(registry.get<CollisionState>(entityA), resultantVector, velocityA, deltaTime, gameConfig.collisionForceMultiplier);
+                    applyCollision(registry.get<CollisionState>(entityB), {-resultantVector.x, -resultantVector.y}, velocityB, deltaTime, gameConfig.collisionForceMultiplier);
 
                     if (const float overlapDistance =
                             (renderableA.radius + renderableB.radius) -
@@ -61,7 +65,7 @@ struct CollisionSystem {
         }
     }
 
-    void applyCollision(CollisionState& collisionState, const Vector2& resultantVector, Velocity& velocity, const float& deltaTime) const {
+    void applyCollision(CollisionState& collisionState, const Vector2& resultantVector, Velocity& velocity, const float& deltaTime, const float& forceMultiplier) const {
         auto& [isInCollisionA, bounceTimerA, bounceVelocityA] = collisionState;
         isInCollisionA = true;
         bounceTimerA = bounceDuration;
