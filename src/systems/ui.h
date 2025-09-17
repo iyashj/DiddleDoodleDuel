@@ -2,8 +2,6 @@
 #define DIDDLEDOODLEDUEL_UI_H
 
 struct UISystem {
-    engine::IDrawHandler& drawHandler;
-
     explicit UISystem(engine::IDrawHandler& drawHandler) : drawHandler(drawHandler) {
     }
 
@@ -12,6 +10,9 @@ struct UISystem {
         drawHandler.drawText(title, Vector2 {20.0F, 20.0F }, 24, BLACK);
         drawHandler.drawText("Use A or D to update the rotation", Vector2 { 20.0F , 50.0F}, 18, BLACK);
     }
+
+private:
+    engine::IDrawHandler& drawHandler;
 };
 
 #endif // DIDDLEDOODLEDUEL_UI_H

@@ -4,17 +4,11 @@
 #include "components/collision_state.h"
 #include "components/position.h"
 #include "components/velocity.h"
-
 #include <entt/entity/registry.hpp>
-
+#include <imgui.h>
 #include <raymath.h>
 
 struct CollisionSystem {
-    float bounceDuration = 0.5F;
-
-    entt::registry& registry;
-    GameConfig& gameConfig;
-
     explicit CollisionSystem(entt::registry& registry, GameConfig& gameConfig) : registry(registry), gameConfig(gameConfig) {
     }
 
@@ -37,8 +31,8 @@ struct CollisionSystem {
                 if (auto [positionAAndBCanCollide, resultantVector] =
                     canCollide(positionA, positionB,renderableA, renderableB); positionAAndBCanCollide) {
 
-                    applyCollision(registry.get<CollisionState>(entityA), resultantVector, velocityA, deltaTime, gameConfig.collisionForceMultiplier);
-                    applyCollision(registry.get<CollisionState>(entityB), {-resultantVector.x, -resultantVector.y}, velocityB, deltaTime, gameConfig.collisionForceMultiplier);
+                    applyCollision(registry.get<CollisionState>(entityA), resultantVector, velocityA, gameConfig.collisionForceMultiplier);
+                    applyCollision(registry.get<CollisionState>(entityB), {-resultantVector.x, -resultantVector.y}, velocityB, gameConfig.collisionForceMultiplier);
 
                     if (const float overlapDistance =
                             (renderableA.radius + renderableB.radius) -
@@ -65,11 +59,13 @@ struct CollisionSystem {
         }
     }
 
-    void applyCollision(CollisionState& collisionState, const Vector2& resultantVector, Velocity& velocity, const float& deltaTime, const float& forceMultiplier) const {
+    void applyCollision(CollisionState& collisionState, const Vector2& resultantVector, Velocity& velocity, const float& forceMultiplier) const {
         auto& [isInCollisionA, bounceTimerA, bounceVelocityA] = collisionState;
         isInCollisionA = true;
-        bounceTimerA = bounceDuration;
-        bounceVelocityA = resultantVector * forceMultiplier * deltaTime;
+
+        bounceTimerA = gameConfig.bounceDuration;
+        const float impulse = gameConfig.brushMovementSpeed * forceMultiplier;
+        bounceVelocityA = Vector2Scale(Vector2Normalize(resultantVector), impulse);
         const auto bounceAngle = atan2f(resultantVector.y, resultantVector.x) * RAD2DEG;
         velocity.rotation = bounceAngle;
     }
@@ -86,6 +82,10 @@ struct CollisionSystem {
             distance < renderable1.radius + renderable2.radius,
             Vector2 {dx/distance, dy/distance});
     }
+
+private:
+    entt::registry& registry;
+    const GameConfig& gameConfig;
 };
 
 #endif // DIDDLEDOODLEDUEL_COLLISION_H

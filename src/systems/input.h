@@ -2,11 +2,10 @@
 #define DIDDLEDOODLEDUEL_INPUT_H
 #include "components/input_action.h"
 #include "components/input_mapping.h"
+#include "components/collision_state.h"
 #include <entt/entity/registry.hpp>
 
 struct InputSystem {
-    entt::registry& registry;
-
     explicit InputSystem(entt::registry& registry) : registry(registry) {
     }
 
@@ -17,6 +16,9 @@ struct InputSystem {
             inputAction.rotateRight = IsKeyDown(inputMapping.rotateRightKey);
         });
     }
+
+private:
+    entt::registry& registry;
 };
 
 #endif // DIDDLEDOODLEDUEL_INPUT_H

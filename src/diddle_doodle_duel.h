@@ -3,6 +3,7 @@
 #include "game/game.h"
 #include "game_config.h"
 #include "systems/collision.h"
+#include "systems/debug_render.h"
 #include "systems/imgui_system.h"
 #include "systems/input.h"
 #include "systems/movement.h"
@@ -29,6 +30,7 @@ private:
     std::unique_ptr<InputSystem> inputSystem;
     std::unique_ptr<UISystem> uiSystem;
     std::unique_ptr<CollisionSystem> collisionSystem;
+    std::unique_ptr<DebugRenderSystem> debugRenderSystem;
     std::unique_ptr<ImGuiSystem> imguiSystem;
 
     void createPlayer(

@@ -2,6 +2,7 @@
 #include "components/input_action.h"
 #include "components/input_mapping.h"
 #include "components/renderable.h"
+#include "systems/debug_render.h"
 #include <entt/entity/registry.hpp>
 
 DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
@@ -15,12 +16,13 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer)
         .collisionForceMultiplier = 2.0F
     };
 
-    imguiSystem = std::make_unique<ImGuiSystem>(ImGuiSystem(gameConfig));
+    imguiSystem = std::make_unique<ImGuiSystem>(ImGuiSystem(registry, gameConfig));
     paintSystem = std::make_unique<PaintSystem>(PaintSystem(this->getRenderer(), gameConfig, registry));
     movementSystem = std::make_unique<MovementSystem>(MovementSystem(registry, gameConfig));
     inputSystem = std::make_unique<InputSystem>(InputSystem(registry));
     uiSystem = std::make_unique<UISystem>(this->getRenderer());
     collisionSystem = std::make_unique<CollisionSystem>(CollisionSystem(registry, gameConfig));
+    debugRenderSystem = std::make_unique<DebugRenderSystem>(registry, gameConfig);
 }
 
 DiddleDoodleDuel::~DiddleDoodleDuel() = default;
@@ -66,10 +68,15 @@ void DiddleDoodleDuel::onUpdate(const float deltaTime) {
 void DiddleDoodleDuel::onRender() {
     this->paintSystem->render();
     this->uiSystem->render(title);
+
+    if (imguiSystem->isDebugWindowVisible()) {
+        debugRenderSystem->render();
+    }
     
     // Render ImGui
     imguiSystem->beginFrame();
     imguiSystem->renderGameUI(title, GetFPS());
+    imguiSystem->renderEcsDebug();
     imguiSystem->endFrame();
 }
 

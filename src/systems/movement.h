@@ -6,11 +6,9 @@
 #include <fmt/format.h>
 #include <iostream>
 #include "game_config.h"
+#include "components/collision_state.h"
 
 struct MovementSystem {
-    entt::registry& registry;
-    const GameConfig& config;
-
     explicit MovementSystem(entt::registry& registry, GameConfig& config)
     : registry(registry), config(config)
     {
@@ -34,13 +32,30 @@ struct MovementSystem {
             velocity.x = cosf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
             velocity.y = sinf(rotation * DEG2RAD) * config.brushMovementSpeed * deltaTime;
 
-            position.x += velocity.x;
-            position.y += velocity.y;
+            // Blend user control while bouncing: reduced control factor during bounce
+            float controlFactor = 1.0f;
+            const CollisionState* col = registry.try_get<CollisionState>(entity);
+            if (col && col->isInCollision && col->bounceTimer > 0.0f) {
+                controlFactor = config.controlDuringBounceFactor; // keep some control but let impulse dominate
+            }
+
+            position.x += velocity.x * controlFactor;
+            position.y += velocity.y * controlFactor;
+
+            // Apply bounce impulse if currently in collision bounce state
+            if (col && col->isInCollision && col->bounceTimer > 0.0f) {
+                position.x += col->bounceVelocity.x * deltaTime;
+                position.y += col->bounceVelocity.y * deltaTime;
+            }
 
             position.x = std::clamp(position.x, 25.0F, 1255.0F);
             position.y = std::clamp(position.y, 25.0F, 695.0F);
         }
     }
+
+private:
+    entt::registry& registry;
+    const GameConfig& config;
 };
 
 #endif // DIDDLEDOODLEDUEL_MOVEMENT_H
