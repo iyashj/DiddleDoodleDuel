@@ -30,40 +30,42 @@ struct ArrowRenderSystem {
             const auto& [radius, color] = view.get<const Renderable>(entity);
 
             const float brushRadius = radius;
-            const Vector2 arrowPos = {
-                position.x,
-                position.y + brushRadius * 0.7f  // Slightly below center of brush
+
+            // Determine movement direction (unit vector) using velocity, fallback to rotation
+            float dirAngleRad;
+            if (Vector2Length(vel.velocity) > 0.1f) {
+                dirAngleRad = atan2f(vel.velocity.y, vel.velocity.x);
+            } else {
+                dirAngleRad = vel.rotation * DEG2RAD;
+            }
+            const Vector2 dirUnit { cosf(dirAngleRad), sinf(dirAngleRad) };
+
+            // Place arrow on the brush perimeter along the movement direction
+            const float arrowSize = brushRadius * 0.6f; // small arrow
+            const float ringRadius = brushRadius - (arrowSize * 0.15f); // slight inset to avoid clipping
+            const Vector2 arrowCenter {
+                position.x + dirUnit.x * ringRadius,
+                position.y + dirUnit.y * ringRadius
             };
 
-            // Small arrow size
-            const float arrowSize = brushRadius * 0.6f;
             const Rectangle destinationRect = {
-                arrowPos.x,
-                arrowPos.y,
+                arrowCenter.x,
+                arrowCenter.y,
                 arrowSize,
                 arrowSize
             };
 
             const Vector2 origin = {arrowSize / 2.0f, arrowSize / 2.0f};
-            
-            // Calculate movement direction from actual velocity vector
-            float movementAngle = 0.0f;
-            if (Vector2Length(vel.velocity) > 0.1f) {
-                // Use actual velocity direction for accurate arrow pointing
-                movementAngle = atan2f(vel.velocity.y, vel.velocity.x) * RAD2DEG;
-                // Since arrowFacingUp.png points up (270° or -90°), we need to adjust
-                movementAngle += 90.0f; // Rotate to align with up-facing arrow
-            } else {
-                // If not moving, use rotation direction
-                movementAngle = vel.rotation + 90.0f;
-            }
+
+            // Rotate arrow to align with up-facing texture (add +90 degrees)
+            const float movementAngleDeg = dirAngleRad * RAD2DEG + 90.0f;
 
             renderer.drawTexture(
                 arrowTexture,
                 {0, 0, static_cast<float>(arrowTexture.width), static_cast<float>(arrowTexture.height)},
                 destinationRect,
                 origin,
-                movementAngle,
+                movementAngleDeg,
                 WHITE
             );
         }
