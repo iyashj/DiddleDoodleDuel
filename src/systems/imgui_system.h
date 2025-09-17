@@ -1,7 +1,6 @@
 #ifndef DIDDLEDOODLEDUEL_IMGUI_SYSTEM_H
 #define DIDDLEDOODLEDUEL_IMGUI_SYSTEM_H
 #include "game_config.h"
-
 #include <entt/entity/registry.hpp>
 #include <string>
 

@@ -1,13 +1,15 @@
 #include "imgui_system.h"
+#include "components/collision_state.h"
+#include "components/input_action.h"
+#include "components/input_mapping.h"
+#include "components/position.h"
+#include "components/renderable.h"
+#include "components/velocity.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
 #include <entt/entity/registry.hpp>
-#include "components/position.h"
-#include "components/velocity.h"
-#include "components/collision_state.h"
-#include "components/renderable.h"
 
 ImGuiSystem::ImGuiSystem(entt::registry& registry, GameConfig& gameConfig) : gameConfig(gameConfig), registry(registry) {
 }
@@ -82,13 +84,13 @@ void ImGuiSystem::renderGameUI(const std::string& title, int fps) {
     ImGui::Text("Game: %s", title.c_str());
     ImGui::Text("FPS: %d", fps);
     ImGui::Separator();
-    
-    // UI controls that directly modify the config (no dirty flag needed)
-    ImGui::SliderFloat("Brush Movement Speed", &gameConfig.brushMovementSpeed, 50.0f, 2000.0f);
+
+    ImGui::Separator();
+    ImGui::Text("Collision Physics");
+    ImGui::SliderFloat("Restitution", &gameConfig.restitution, 0.0f, 1.0f);
+    ImGui::SliderFloat("Collision Damping", &gameConfig.collisionDamping, 0.1f, 1.0f);
+    ImGui::SliderFloat("Separation Force", &gameConfig.separationForce, 50.0f, 300.0f);
     ImGui::SliderFloat("Brush Size", &gameConfig.brushSize, 10.0f, 50.0f);
-    ImGui::SliderFloat("Collision Force", &gameConfig.collisionForceMultiplier, 0.5f, 10.0f);
-    ImGui::SliderFloat("Bounce Duration (s)", &gameConfig.bounceDuration, 0.1f, 2.0f);
-    ImGui::SliderFloat("Control During Bounce", &gameConfig.controlDuringBounceFactor, 0.0f, 1.0f);
     
     ImGui::Separator();
     ImGui::Text("Debug Options");
@@ -136,7 +138,6 @@ void ImGuiSystem::renderEcsDebug() {
     if (!initialized || !showEcsWindow) return;
 
     if (ImGui::Begin("ECS State", &showEcsWindow)) {
-
         // Table of key components
         if (ImGui::BeginTable("ecs_table", 7, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
             ImGui::TableSetupColumn("Entity");
@@ -148,21 +149,21 @@ void ImGuiSystem::renderEcsDebug() {
             ImGui::TableSetupColumn("Bounce t/V");
             ImGui::TableHeadersRow();
 
-            auto view = registry.view<Position, Velocity, CollisionState>();
-            for (auto entity : view) {
-                const auto& pos = view.get<Position>(entity);
+            for (const auto view = registry.view<Position, Velocity, CollisionState>();
+                 auto entity : view) {
+                const auto& [position] = view.get<Position>(entity);
                 const auto& vel = view.get<Velocity>(entity);
-                const auto& col = view.get<CollisionState>(entity);
+                const auto& [isInCollision, bounceTimer, bounceVelocity] = view.get<CollisionState>(entity);
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%u", (unsigned int)entity);
+                ImGui::Text("%u", static_cast<unsigned int>(entity));
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%.1f", pos.position.x);
+                ImGui::Text("%.1f", position.x);
 
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%.1f", pos.position.y);
+                ImGui::Text("%.1f", position.y);
 
                 ImGui::TableSetColumnIndex(3);
                 ImGui::Text("%.2f", vel.velocity.x);
@@ -171,10 +172,10 @@ void ImGuiSystem::renderEcsDebug() {
                 ImGui::Text("%.2f", vel.velocity.y);
 
                 ImGui::TableSetColumnIndex(5);
-                ImGui::Text(col.isInCollision ? "Yes" : "No");
+                ImGui::Text(isInCollision ? "Yes" : "No");
 
                 ImGui::TableSetColumnIndex(6);
-                ImGui::Text("t=%.2f v=(%.1f,%.1f)", col.bounceTimer, col.bounceVelocity.x, col.bounceVelocity.y);
+                ImGui::Text("t=%.2f v=(%.1f,%.1f)", bounceTimer, bounceVelocity.x, bounceVelocity.y);
             }
             ImGui::EndTable();
         }
@@ -188,23 +189,47 @@ void ImGuiSystem::renderEcsDebug() {
                 ImGui::TableSetupColumn("Speed");
                 ImGui::TableHeadersRow();
 
-                auto view2 = registry.view<Renderable, Velocity>();
-                for (auto entity : view2) {
-                    const auto& ren = view2.get<Renderable>(entity);
+                for (const auto view2 = registry.view<Renderable, Velocity>(); auto entity : view2) {
+                    const auto& [radius, color] = view2.get<Renderable>(entity);
                     const auto& vel = view2.get<Velocity>(entity);
 
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("%u", (unsigned int)entity);
+                    ImGui::Text("%u", static_cast<unsigned int>(entity));
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%.1f", ren.radius);
+                    ImGui::Text("%.1f", radius);
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%.1f deg", vel.rotation);
 
                     ImGui::TableSetColumnIndex(3);
                     ImGui::Text("%.1f", vel.speed);
+                }
+                ImGui::EndTable();
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Input")) {
+            if (ImGui::BeginTable("ecs_inputs", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+                ImGui::TableSetupColumn("Entity");
+                ImGui::TableSetupColumn("Rotate Left");
+                ImGui::TableSetupColumn("Rotate Right");
+                ImGui::TableHeadersRow();
+
+                for (const auto view3 = registry.view<InputAction>(); auto entity : view3) {
+                    const auto& [rotateLeft, rotateRight] = view3.get<InputAction>(entity);
+
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%u", static_cast<unsigned int>(entity));
+
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("%d", rotateLeft);
+
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%d", rotateRight);
                 }
                 ImGui::EndTable();
             }
