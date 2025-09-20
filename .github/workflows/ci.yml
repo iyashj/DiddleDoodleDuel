@@ -71,12 +71,23 @@ jobs:
             ${{ runner.os }}-conan2-${{ matrix.build_type }}-
             ${{ runner.os }}-conan2-
 
-      - name: Enable ccache (Linux/macOS)
+      - name: Setup and verify ccache (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
-          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+          # Verify ccache is available
+          if command -v ccache >/dev/null 2>&1; then
+            echo "✅ ccache found at: $(which ccache)"
+            ccache --version
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> $GITHUB_ENV
+          else
+            echo "❌ ccache not found in PATH"
+            echo "Available in /usr/local/bin: $(ls -la /usr/local/bin/ccache 2>/dev/null || echo 'not found')"
+            echo "Available in /opt/homebrew/bin: $(ls -la /opt/homebrew/bin/ccache 2>/dev/null || echo 'not found')"
+            echo "PATH: $PATH"
+            exit 1
+          fi
 
       - name: Create Conan profile
         shell: bash
@@ -114,7 +125,14 @@ jobs:
           fi
 
       - name: Conan install
-        run: conan install . --profile ci_profile -o build_tests=${{ matrix.with_tests }} --build=missing -of ${{ steps.cfg.outputs.build_dir }}
+        shell: bash
+        run: |
+          conan install . \
+            --profile:host=ci_profile \
+            --profile:build=ci_profile \
+            --build=missing \
+            -o "&:build_tests=${{ matrix.with_tests == 'true' && 'True' || 'False' }}" \
+            -of ${{ steps.cfg.outputs.build_dir }}
 
       - name: CMake configure
         shell: bash
