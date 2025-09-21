@@ -28,6 +28,10 @@ class DoodleDuelConan(ConanFile):
         self.requires("imgui/1.89.9")
         # GLFW needed for ImGui platform backend
         self.requires("glfw/3.4")
+        # Tests: Catch2 should be a normal requirement when tests are built so that
+        # CMake's find_package(Catch2) can locate it via CMakeDeps in the host context.
+        if self.options.build_tests:
+            self.requires("catch2/3.5.2")
 
     def configure(self):
         # Configure ImGui options - some packages may not support these options
@@ -38,9 +42,6 @@ class DoodleDuelConan(ConanFile):
             # If backend options don't exist, the package may include them by default
             pass
 
-    def build_requirements(self):
-        if self.options.build_tests:
-            self.test_requires("catch2/3.5.2")
 
     def generate(self):
         deps = CMakeDeps(self)
