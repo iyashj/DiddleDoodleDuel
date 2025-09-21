@@ -155,6 +155,19 @@ jobs:
         if: matrix.with_tests == true
         run: ctest --test-dir ${{ steps.cfg.outputs.build_dir }} --output-on-failure -C ${{ matrix.build_type }}
 
+      - name: Upload built binaries (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.with_tests }}
+          path: |
+            ${{ steps.cfg.outputs.build_dir }}/DiddleDoodleDuel*
+            ${{ steps.cfg.outputs.build_dir }}/ddd_tests*
+            ${{ steps.cfg.outputs.build_dir }}/**/*.dSYM/**
+            ${{ steps.cfg.outputs.build_dir }}/resources/**
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: ccache stats (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
