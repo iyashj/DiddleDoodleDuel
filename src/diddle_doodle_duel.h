@@ -1,19 +1,26 @@
 #ifndef DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
 #define DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
+#include "core/event_bus.h"
+#include "core/event_definitions.h"
 #include "game/game.h"
 #include "game_config.h"
+#include "systems/arrow_render.h"
 #include "systems/collision.h"
 #include "systems/debug_render.h"
-#include "systems/arrow_render.h"
+#include "systems/entity_lifecycle_system.h"
 #include "systems/imgui_system.h"
 #include "systems/input.h"
-#include "systems/physics_movement.h"
-#include "systems/physics_collision.h"
 #include "systems/paint.h"
+#include "systems/physics_collision.h"
+#include "systems/physics_movement.h"
+#include "systems/scene_transition_system.h"
+#include "systems/system_activation_system.h"
 #include "systems/ui.h"
 #include <entt/entity/registry.hpp>
 
 class DiddleDoodleDuel : public engine::Game {
+    void onMenuEvent(const MenuEvent& evt);
+
 public:
     explicit DiddleDoodleDuel(engine::IRenderer& renderer);
     ~DiddleDoodleDuel() override;
@@ -24,9 +31,9 @@ public:
 private:
     entt::registry registry;
     std::string title;
-
     GameConfig gameConfig;
 
+    std::unique_ptr<EventBus> eventBus;
     std::unique_ptr<PaintSystem> paintSystem;
     std::unique_ptr<PhysicsMovementSystem> physicsMovementSystem;
     std::unique_ptr<InputSystem> inputSystem;
@@ -42,6 +49,17 @@ private:
         KeyboardKey rotateLeftKey,
         KeyboardKey rotateRightKey,
         Color brushColor);
+
+    void startLocalGame();
+    void renderMainMenuUI() const;
+    void renderOnlineUI() const;
+
+    void executeUpdateOnActiveSystems(float deltaTime) const;
+    void executeRenderOnWorldSystems() const;
+
+    void handleInputEvents() const;
+    void renderUISystems(SceneType currentScene) const;
+    void renderDebugInfo(SceneType currentScene) const;
 };
 
 #endif // DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H

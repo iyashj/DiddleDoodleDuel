@@ -6,8 +6,9 @@
 #include "rendering/irenderer.h"
 #include "resources/resource_manager.h"
 #include <entt/entity/registry.hpp>
-#include <raylib.h>
 #include <iostream>
+#include <raylib.h>
+#include <raymath.h>
 
 struct ArrowRenderSystem {
     entt::registry& registry;
