@@ -7,6 +7,7 @@
 #include "components/velocity.h"
 #include "logging/logger.h"
 #include "systems/debug_render.h"
+#include "performance/profiler.h"
 #include <entt/entity/registry.hpp>
 
 void DiddleDoodleDuel::onMenuEvent(const MenuEvent& evt) {
@@ -59,6 +60,8 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer) : Game(renderer)
 DiddleDoodleDuel::~DiddleDoodleDuel() {
     LOG_DEBUG_MSG("Cleaning up game resources...");
     
+    // Print final performance report
+    SimpleProfiler::getInstance().printResults();
     
     EntityLifecycleSystem::cleanupAllEntities(registry);
     
@@ -93,10 +96,31 @@ void DiddleDoodleDuel::onUpdate(const float deltaTime) {
     handleInputEvents();
     executeUpdateOnActiveSystems(deltaTime);
     
+    // Manual FPS calculation to bypass display limitations
+    static float frameCount = 0;
+    static float timeAccumulator = 0;
+    frameCount++;
+    timeAccumulator += deltaTime;
     
+    if (timeAccumulator >= 1.0f) {
+        std::cout << "TRUE FPS: " << frameCount << " (Frame time: " << (timeAccumulator/frameCount)*1000 << "ms)" << std::endl;
+        frameCount = 0;
+        timeAccumulator = 0;
+    }
+    
+    // Print performance stats every 5 seconds
+    static float timeSinceLastProfile = 0.0f;
+    timeSinceLastProfile += deltaTime;
+    if (timeSinceLastProfile >= 5.0f) {
+        SimpleProfiler::getInstance().printResults();
+        SimpleProfiler::getInstance().reset();
+        timeSinceLastProfile = 0.0f;
+    }
 }
 
 void DiddleDoodleDuel::onRender() {
+    SimpleProfiler::getInstance().startTimer("FullFrame");
+    SimpleProfiler::getInstance().startTimer("Rendering");
     
     ClearBackground({30, 30, 40, 255});
     
@@ -106,6 +130,8 @@ void DiddleDoodleDuel::onRender() {
     renderUISystems(currentScene);
     renderDebugInfo(currentScene);
     
+    SimpleProfiler::getInstance().endTimer("Rendering");
+    SimpleProfiler::getInstance().endTimer("FullFrame");
 }
 
 void DiddleDoodleDuel::createPlayer(const Vector2 startPosition, const float initialRotation,
@@ -260,24 +286,34 @@ void DiddleDoodleDuel::renderOnlineUI() const {
 }
 
 void DiddleDoodleDuel::executeUpdateOnActiveSystems(const float deltaTime) const {
+    SimpleProfiler::getInstance().startTimer("SystemUpdate");
     
 
     if ((SystemsActivationSystem::shouldSystemRun(registry, "InputSystem"))) {
+        SimpleProfiler::getInstance().startTimer("InputSystem");
         inputSystem->update();
+        SimpleProfiler::getInstance().endTimer("InputSystem");
     }
 
     if ((SystemsActivationSystem::shouldSystemRun(registry, "PhysicsMovementSystem"))) {
+        SimpleProfiler::getInstance().startTimer("PhysicsMovement");
         physicsMovementSystem->update(deltaTime);
+        SimpleProfiler::getInstance().endTimer("PhysicsMovement");
     }
 
     if ((SystemsActivationSystem::shouldSystemRun(registry, "PhysicsCollisionSystem"))) {
+        SimpleProfiler::getInstance().startTimer("PhysicsCollision");
         physicsCollisionSystem->update(deltaTime);
+        SimpleProfiler::getInstance().endTimer("PhysicsCollision");
     }
 
     if ((SystemsActivationSystem::shouldSystemRun(registry, "PaintSystem"))) {
+        SimpleProfiler::getInstance().startTimer("PaintSystem");
         paintSystem->update();
+        SimpleProfiler::getInstance().endTimer("PaintSystem");
     }
     
+    SimpleProfiler::getInstance().endTimer("SystemUpdate");
 }
 
 void DiddleDoodleDuel::executeRenderOnWorldSystems() const {
