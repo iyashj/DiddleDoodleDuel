@@ -22,6 +22,7 @@ find_package(fmt REQUIRED)
 find_package(entt REQUIRED)
 find_package(imgui REQUIRED)
 find_package(enet REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # --- Dependencies via submodule ---
 # Expect the engine to be available as a git submodule at humble-engine/
