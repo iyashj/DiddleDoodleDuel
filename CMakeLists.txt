@@ -21,6 +21,7 @@ find_package(raylib REQUIRED)
 find_package(fmt REQUIRED)
 find_package(entt REQUIRED)
 find_package(imgui REQUIRED)
+find_package(enet REQUIRED)
 
 # --- Dependencies via submodule ---
 # Expect the engine to be available as a git submodule at humble-engine/

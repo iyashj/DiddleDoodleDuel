@@ -28,6 +28,8 @@ class DoodleDuelConan(ConanFile):
         self.requires("imgui/1.89.9")
         # GLFW needed for ImGui platform backend
         self.requires("glfw/3.4")
+        # ENet for networking
+        self.requires("enet/1.3.17")
         # Tests: Catch2 should be a normal requirement when tests are built so that
         # CMake's find_package(Catch2) can locate it via CMakeDeps in the host context.
         if self.options.build_tests:
