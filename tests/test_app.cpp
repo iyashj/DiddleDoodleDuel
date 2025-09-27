@@ -1,4 +1,6 @@
-#include "../src/components/movement_structs.h"
+#include "components/position.h"
+#include "components/velocity.h"
+#include "components/renderable.h"
 #include "../src/diddle_doodle_duel.h"
 #include "core/engine_core.h"
 #include "logging/logger.h"
