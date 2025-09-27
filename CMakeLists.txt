@@ -10,6 +10,9 @@ project(DiddleDoodleDuel
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Configure gameconfig.json as a dependency to trigger rebuilds when it changes
+configure_file(${CMAKE_SOURCE_DIR}/gameconfig.json ${CMAKE_BINARY_DIR}/gameconfig.json COPYONLY)
+
 # Options
 option(DDD_ENABLE_LTO "Enable Link Time Optimization" ON)
 option(DDD_ENABLE_SANITIZERS "Enable sanitizers (Debug only)" OFF)
@@ -21,6 +24,8 @@ find_package(raylib REQUIRED)
 find_package(fmt REQUIRED)
 find_package(entt REQUIRED)
 find_package(imgui REQUIRED)
+find_package(enet REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # --- Dependencies via submodule ---
 # Expect the engine to be available as a git submodule at humble-engine/
@@ -48,6 +53,15 @@ add_executable(${PROJECT_NAME}
         src/components/position.h
         src/components/input_mapping.h
         src/components/input_action.h
+        src/network/network_interface.h
+        src/network/enet_network.h
+        src/network/enet_network.cpp
+        src/network/game_protocol.h
+        src/network/multiplayer_manager.h
+        src/network/multiplayer_manager.cpp
+        src/network/message_definitions.h
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
 )
 
 add_custom_command(
@@ -55,6 +69,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/resources
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/gameconfig.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/gameconfig.json
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
@@ -70,83 +87,194 @@ if(entt_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)
 endif()
 
-# Ensure third_party/imgui is in the include path for backend headers
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
-
-
-# Always link glfw (regardless of imgui or backends)
-set(GLFW_TARGET_FOUND OFF)
-foreach(glfw_candidate IN ITEMS glfw glfw3 glfw::glfw)
-    if(TARGET ${glfw_candidate})
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${glfw_candidate})
-        get_target_property(GLFW_INCLUDE_DIRS ${glfw_candidate} INTERFACE_INCLUDE_DIRECTORIES)
-        if(GLFW_INCLUDE_DIRS)
-            target_include_directories(${PROJECT_NAME} PRIVATE ${GLFW_INCLUDE_DIRS})
-        endif()
-        set(GLFW_TARGET_FOUND ON)
-        break()
-    endif()
-endforeach()
-if(NOT GLFW_TARGET_FOUND)
-    message(FATAL_ERROR "No suitable GLFW target found; make sure Conan has provided glfw (glfw, glfw3, or glfw::glfw)")
+# Link ENet for networking
+if(enet_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE enet::enet)
 endif()
 
-# Ensure GLFW headers are visible
-foreach(glfw_target IN ITEMS glfw::glfw glfw3::glfw glfw)
-    if(TARGET ${glfw_target})
-        get_target_property(_glfw_inc ${glfw_target} INTERFACE_INCLUDE_DIRECTORIES)
-        if(_glfw_inc)
-            target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc})
-        endif()
-    endif()
-endforeach()
+# Link nlohmann_json for serialization
+if(nlohmann_json_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
+endif()
 
-if(imgui_FOUND)
-    # Link core ImGui
-    target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
+# --- Additional executables for client/server ---
+# Client executable
+add_executable(${PROJECT_NAME}Client
+        client_main.cpp
+        src/diddle_doodle_duel.cpp
+        src/diddle_doodle_duel.h
+        src/components/renderable.h
+        src/systems/paint.h
+        src/systems/movement.h
+        src/systems/input.h
+        src/systems/ui.h
+        src/systems/collision.h
+        src/systems/imgui_system.h
+        src/systems/imgui_system.cpp
+        src/components/collision_state.h
+        src/components/velocity.h
+        src/components/position.h
+        src/components/input_mapping.h
+        src/components/input_action.h
+        src/network/network_interface.h
+        src/network/enet_network.h
+        src/network/enet_network.cpp
+        src/network/game_protocol.h
+        src/network/multiplayer_manager.h
+        src/network/multiplayer_manager.cpp
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
+)
+
+# Server executable
+add_executable(${PROJECT_NAME}Server
+        server_main.cpp
+        src/diddle_doodle_duel.cpp
+        src/diddle_doodle_duel.h
+        src/components/renderable.h
+        src/systems/paint.h
+        src/systems/movement.h
+        src/systems/input.h
+        src/systems/ui.h
+        src/systems/collision.h
+        src/systems/imgui_system.h
+        src/systems/imgui_system.cpp
+        src/components/collision_state.h
+        src/components/velocity.h
+        src/components/position.h
+        src/components/input_mapping.h
+        src/components/input_action.h
+        src/network/network_interface.h
+        src/network/enet_network.h
+        src/network/enet_network.cpp
+        src/network/game_protocol.h
+        src/network/multiplayer_manager.h
+        src/network/multiplayer_manager.cpp
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
+)
+
+# Configure client executable
+target_compile_features(${PROJECT_NAME}Client PUBLIC cxx_std_23)
+target_link_libraries(${PROJECT_NAME}Client PRIVATE HumbleEngine::HumbleEngine)
+target_include_directories(${PROJECT_NAME}Client PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Configure server executable  
+target_compile_features(${PROJECT_NAME}Server PUBLIC cxx_std_23)
+target_link_libraries(${PROJECT_NAME}Server PRIVATE HumbleEngine::HumbleEngine)
+target_include_directories(${PROJECT_NAME}Server PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/humble-engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Link libraries to client and server
+foreach(target IN ITEMS ${PROJECT_NAME}Client ${PROJECT_NAME}Server)
+    if(entt_FOUND)
+        target_link_libraries(${target} PRIVATE EnTT::EnTT)
+    endif()
     
-    # Add our local backend include directories and sources
-    target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends")
+    if(enet_FOUND)
+        target_link_libraries(${target} PRIVATE enet::enet)
+    endif()
     
-    # Add backend source files
-    target_sources(${PROJECT_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_glfw.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_opengl3.cpp"
+    if(nlohmann_json_FOUND)
+        target_link_libraries(${target} PRIVATE nlohmann_json::nlohmann_json)
+    endif()
+    
+    # Copy resources for each executable
+    add_custom_command(
+        TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/resources
+            $<TARGET_FILE_DIR:${target}>/resources
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_SOURCE_DIR}/gameconfig.json
+            $<TARGET_FILE_DIR:${target}>/gameconfig.json
     )
+endforeach()
 
-    # Link GLFW if available under any known target name
+# Apply ImGui configuration to all executables
+foreach(target IN ITEMS ${PROJECT_NAME} ${PROJECT_NAME}Client ${PROJECT_NAME}Server)
+    # Ensure third_party/imgui is in the include path for backend headers
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+
+    # Always link glfw (regardless of imgui or backends)
+    set(GLFW_TARGET_FOUND OFF)
+    foreach(glfw_candidate IN ITEMS glfw glfw3 glfw::glfw)
+        if(TARGET ${glfw_candidate})
+            target_link_libraries(${target} PRIVATE ${glfw_candidate})
+            get_target_property(GLFW_INCLUDE_DIRS ${glfw_candidate} INTERFACE_INCLUDE_DIRECTORIES)
+            if(GLFW_INCLUDE_DIRS)
+                target_include_directories(${target} PRIVATE ${GLFW_INCLUDE_DIRS})
+            endif()
+            set(GLFW_TARGET_FOUND ON)
+            break()
+        endif()
+    endforeach()
+    if(NOT GLFW_TARGET_FOUND)
+        message(FATAL_ERROR "No suitable GLFW target found; make sure Conan has provided glfw (glfw, glfw3, or glfw::glfw)")
+    endif()
+
+    # Ensure GLFW headers are visible
+    foreach(glfw_target IN ITEMS glfw::glfw glfw3::glfw glfw)
+        if(TARGET ${glfw_target})
+            get_target_property(_glfw_inc ${glfw_target} INTERFACE_INCLUDE_DIRECTORIES)
+            if(_glfw_inc)
+                target_include_directories(${target} PRIVATE ${_glfw_inc})
+            endif()
+        endif()
+    endforeach()
+
+    if(imgui_FOUND)
+        # Link core ImGui
+        target_link_libraries(${target} PRIVATE imgui::imgui)
+        
+        # Add our local backend include directories and sources
+        target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends")
+        
+        # Add backend source files
+        target_sources(${target} PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_glfw.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui_backends/imgui_impl_opengl3.cpp"
+        )
+
+        # Link GLFW if available under any known target name
+        if(TARGET glfw::glfw)
+            target_link_libraries(${target} PRIVATE glfw::glfw)
+        elseif(TARGET glfw3::glfw)
+            target_link_libraries(${target} PRIVATE glfw3::glfw)
+        elseif(TARGET glfw)
+            target_link_libraries(${target} PRIVATE glfw)
+        endif()
+
+        # Link OpenGL from Conan (opengl::opengl) or CMake if available
+        if(TARGET opengl::opengl)
+            target_link_libraries(${target} PRIVATE opengl::opengl)
+        else()
+            find_package(OpenGL REQUIRED)
+            target_link_libraries(${target} PRIVATE OpenGL::GL)
+        endif()
+
+        # Do not add vendored imgui_impl_glfw.cpp or imgui_impl_opengl3.cpp; use Conan-provided ImGui only
+    endif()
+
+    # Fallback: ensure GLFW include directories are visible even if generator expressions fail
     if(TARGET glfw::glfw)
-        target_link_libraries(${PROJECT_NAME} PRIVATE glfw::glfw)
-    elseif(TARGET glfw3::glfw)
-        target_link_libraries(${PROJECT_NAME} PRIVATE glfw3::glfw)
-    elseif(TARGET glfw)
-        target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+        get_target_property(_glfw_inc glfw::glfw INTERFACE_INCLUDE_DIRECTORIES)
+        if(_glfw_inc)
+            target_include_directories(${target} PRIVATE ${_glfw_inc})
+        endif()
     endif()
-
-    # Link OpenGL from Conan (opengl::opengl) or CMake if available
-    if(TARGET opengl::opengl)
-        target_link_libraries(${PROJECT_NAME} PRIVATE opengl::opengl)
-    else()
-        find_package(OpenGL REQUIRED)
-        target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
+    if(TARGET glfw)
+        get_target_property(_glfw_inc2 glfw INTERFACE_INCLUDE_DIRECTORIES)
+        if(_glfw_inc2)
+            target_include_directories(${target} PRIVATE ${_glfw_inc2})
+        endif()
     endif()
-
-    # Do not add vendored imgui_impl_glfw.cpp or imgui_impl_opengl3.cpp; use Conan-provided ImGui only
-endif()
-
-# Fallback: ensure GLFW include directories are visible even if generator expressions fail
-if(TARGET glfw::glfw)
-    get_target_property(_glfw_inc glfw::glfw INTERFACE_INCLUDE_DIRECTORIES)
-    if(_glfw_inc)
-        target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc})
-    endif()
-endif()
-if(TARGET glfw)
-    get_target_property(_glfw_inc2 glfw INTERFACE_INCLUDE_DIRECTORIES)
-    if(_glfw_inc2)
-        target_include_directories(${PROJECT_NAME} PRIVATE ${_glfw_inc2})
-    endif()
-endif()
+endforeach()
 
 # --- Tests ---
 if(DOODLEDUEL_BUILD_TESTS)

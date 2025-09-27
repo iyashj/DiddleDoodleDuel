@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "brushSize": 30.0,
+  "brushMovementSpeed": 200.0,
+  "collisionForceMultiplier": 2.0,
+  "bounceDuration": 0.6,
+  "controlDuringBounceFactor": 0.3,
+  "debugCollisionRadius": 25.0,
+  "restitution": 0.8,
+  "collisionDamping": 0.7,
+  "separationForce": 100.0,
+  "enableProfiler": false,
+  "enableFpsCounter": false
+}

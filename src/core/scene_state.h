@@ -22,7 +22,8 @@ struct SceneState {
             },
             {
                 SceneType::Game,
-                {"PaintSystem",
+                {
+                    "PaintSystem",
                     "PhysicsMovementSystem",
                     "InputSystem",
                     "UISystem",
@@ -35,6 +36,22 @@ struct SceneState {
             {
                 SceneType::NetworkingDemo, {"ImGuiSystem"}
             },
+            {
+                SceneType::Lobby, {"ImGuiSystem"}
+            },
+            {
+                SceneType::NetworkedGame,
+                {
+                    "PaintSystem",
+                    "PhysicsMovementSystem",
+                    "InputSystem",
+                    "UISystem",
+                    "PhysicsCollisionSystem",
+                    "DebugRenderSystem",
+                    "ArrowRenderSystem",
+                    "UsernameRenderSystem",
+                    "ImGuiSystem"}
+            }
         };
         return map;
     }

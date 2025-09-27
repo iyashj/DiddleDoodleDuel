@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
+#include "logging/logger.h"
 
 class SimpleProfiler {
 public:
@@ -28,13 +29,13 @@ public:
     }
 
     void printResults() const {
-        std::cout << "\n=== Performance Profile ===\n";
+        LOG_INFO_MSG("\n=== Performance Profile ===");
         for (const auto& [name, totalTime] : totalTimes) {
             auto avgTime = totalTime / static_cast<double>(callCounts.at(name));
-            std::cout << name << ": " << avgTime << "μs avg (" 
-                     << callCounts.at(name) << " calls)\n";
+            LOG_INFO_MSG("%s: %.2fμs avg (%zu calls)", 
+                         name.c_str(), avgTime, callCounts.at(name));
         }
-        std::cout << "===========================\n\n";
+        LOG_INFO_MSG("===========================\n");
     }
 
     void reset() {

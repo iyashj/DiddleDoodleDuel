@@ -13,6 +13,10 @@ struct GameConfig {
     float restitution {0.8F};              // Bounce factor (0-1)
     float collisionDamping {0.7F};         // Velocity reduction on collision
     float separationForce {100.0F};        // Force to separate overlapping objects
+    
+    // Debug/Performance flags
+    bool enableProfiler {false};           // Enable performance profiling output
+    bool enableFpsCounter {false};         // Enable TRUE FPS counter output
 };
 
 #endif // DIDDLEDOODLEDUEL_GAME_CONFIG_H

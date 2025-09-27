@@ -3,6 +3,8 @@
 #include "components/position.h"
 #include "components/renderable.h"
 #include "components/velocity.h"
+#include "components/scene_entity.h"
+#include "systems/scene_transition_system.h"
 #include "rendering/irenderer.h"
 #include "resources/resource_manager.h"
 #include <entt/entity/registry.hpp>
@@ -18,7 +20,7 @@ struct ArrowRenderSystem {
     explicit ArrowRenderSystem(entt::registry& registry, engine::IRenderer& renderer)
         : registry(registry), renderer(renderer) {
         
-        if (const auto result = engine::resources::loadTexture("resources/textures/arrowFacingUp.png");
+        if (const auto result = engine::resources::loadTexture("textures/arrowFacingUp.png");
             result.has_value()) {
             this->arrowTexture = result.value();
         }
@@ -29,12 +31,20 @@ struct ArrowRenderSystem {
         if (arrowTexture.id == 0) {
             return;
         }
+
+        const auto currentScene = SceneTransitionSystem::getCurrentScene(registry);
         
-        for (const auto view = registry.view<const Position, const Velocity, const Renderable>();
+        for (const auto view = registry.view<const Position, const Velocity, const Renderable, const SceneEntity>();
              const auto entity : view) {
             const auto& [position] = view.get<const Position>(entity);
             const auto& vel = view.get<const Velocity>(entity);
             const auto& [radius, color] = view.get<const Renderable>(entity);
+
+            // Only render entities that belong to the current scene
+            if (const auto& [belongsToScene, persistent] = view.get<const SceneEntity>(entity);
+                belongsToScene != currentScene) {
+                continue;
+            }
 
             const float brushRadius = radius;
 
