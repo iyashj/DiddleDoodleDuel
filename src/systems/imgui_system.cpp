@@ -5,6 +5,7 @@
 #include "components/position.h"
 #include "components/renderable.h"
 #include "components/velocity.h"
+#include "core/game_config_manager.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -98,6 +99,7 @@ void ImGuiSystem::renderGameUI(const std::string& title, int fps) {
     ImGui::SliderFloat("Debug Collision Radius", &gameConfig.debugCollisionRadius, 5.0f, 50.0f);
 
     ImGui::Checkbox("Show Debug Window", &showDebugWindow);
+    ImGui::Checkbox("Show Config Editor", &showConfigEditor);
     ImGui::Checkbox("Show ECS State", &showEcsWindow);
     ImGui::Checkbox("Show ImGui Demo", &showDemoWindow);
     
@@ -236,4 +238,69 @@ void ImGuiSystem::renderEcsDebug() {
         }
     }
     ImGui::End();
+}
+
+void ImGuiSystem::renderConfigEditor() {
+    if (!initialized || !showConfigEditor) {
+        return;
+    }
+
+    ImGui::Begin("Game Configuration", &showConfigEditor);
+    
+    ImGui::Text("Runtime Configuration Editor");
+    ImGui::Separator();
+    
+    // Brush Settings
+    if (ImGui::CollapsingHeader("Brush Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderFloat("Brush Size", &gameConfig.brushSize, 10.0f, 100.0f, "%.1f");
+        ImGui::SliderFloat("Brush Movement Speed", &gameConfig.brushMovementSpeed, 100.0f, 10000.0f, "%.0f");
+        ImGui::SliderFloat("Collision Force Multiplier", &gameConfig.collisionForceMultiplier, 0.5f, 10.0f, "%.2f");
+    }
+    
+    // Physics Settings
+    if (ImGui::CollapsingHeader("Physics Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderFloat("Restitution", &gameConfig.restitution, 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Collision Damping", &gameConfig.collisionDamping, 0.1f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Separation Force", &gameConfig.separationForce, 50.0f, 500.0f, "%.0f");
+        ImGui::SliderFloat("Bounce Duration", &gameConfig.bounceDuration, 0.1f, 2.0f, "%.2f");
+        ImGui::SliderFloat("Control During Bounce Factor", &gameConfig.controlDuringBounceFactor, 0.0f, 1.0f, "%.2f");
+    }
+    
+    // Debug Settings
+    if (ImGui::CollapsingHeader("Debug Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderFloat("Debug Collision Radius", &gameConfig.debugCollisionRadius, 5.0f, 100.0f, "%.1f");
+        ImGui::Checkbox("Enable Profiler", &gameConfig.enableProfiler);
+        ImGui::Checkbox("Enable FPS Counter", &gameConfig.enableFpsCounter);
+    }
+    
+    ImGui::Separator();
+    
+    // Action buttons
+    if (ImGui::Button("Save to File")) {
+        saveConfigToFile();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load from File")) {
+        loadConfigFromFile();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset to Defaults")) {
+        gameConfig = GameConfig{}; // Reset to default values
+    }
+    
+    ImGui::End();
+}
+
+void ImGuiSystem::saveConfigToFile() {
+    const auto configPath = GameConfigManager::getConfigPath();
+    if (GameConfigManager::saveToJson(configPath, gameConfig)) {
+        // Could show a success notification here
+    }
+}
+
+void ImGuiSystem::loadConfigFromFile() {
+    const auto configPath = GameConfigManager::getConfigPath();
+    if (GameConfigManager::loadFromJson(configPath, gameConfig)) {
+        // Could show a success notification here
+    }
 }
