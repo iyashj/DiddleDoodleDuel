@@ -4,9 +4,10 @@ cmake_minimum_required(VERSION 3.20)
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(ddd_tests
-    test_app.cpp
-        ../src/diddle_doodle_duel.cpp
-        ../src/game_config.h
+    test_game_config.cpp
+    ../src/game_config.h
+    ../src/core/game_config_manager.h
+    ../src/core/game_config_manager.cpp
 )
 
 target_link_libraries(ddd_tests PRIVATE
@@ -14,13 +15,22 @@ target_link_libraries(ddd_tests PRIVATE
     HumbleEngine::HumbleEngine
 )
 
-# Link entt if available
+# Link required dependencies
 find_package(entt REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
 if(entt_FOUND)
     target_link_libraries(ddd_tests PRIVATE EnTT::EnTT)
 endif()
 
-target_include_directories(ddd_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../humble-engine/include)
+if(nlohmann_json_FOUND)
+    target_link_libraries(ddd_tests PRIVATE nlohmann_json::nlohmann_json)
+endif()
+
+target_include_directories(ddd_tests PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../humble-engine/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+)
 
 # High warnings for tests as well
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

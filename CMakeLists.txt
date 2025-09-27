@@ -10,6 +10,9 @@ project(DiddleDoodleDuel
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Configure gameconfig.json as a dependency to trigger rebuilds when it changes
+configure_file(${CMAKE_SOURCE_DIR}/gameconfig.json ${CMAKE_BINARY_DIR}/gameconfig.json COPYONLY)
+
 # Options
 option(DDD_ENABLE_LTO "Enable Link Time Optimization" ON)
 option(DDD_ENABLE_SANITIZERS "Enable sanitizers (Debug only)" OFF)
@@ -57,6 +60,8 @@ add_executable(${PROJECT_NAME}
         src/network/multiplayer_manager.h
         src/network/multiplayer_manager.cpp
         src/network/message_definitions.h
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
 )
 
 add_custom_command(
@@ -64,6 +69,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/resources
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/gameconfig.json
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/gameconfig.json
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
@@ -114,6 +122,8 @@ add_executable(${PROJECT_NAME}Client
         src/network/game_protocol.h
         src/network/multiplayer_manager.h
         src/network/multiplayer_manager.cpp
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
 )
 
 # Server executable
@@ -140,6 +150,8 @@ add_executable(${PROJECT_NAME}Server
         src/network/game_protocol.h
         src/network/multiplayer_manager.h
         src/network/multiplayer_manager.cpp
+        src/core/game_config_manager.h
+        src/core/game_config_manager.cpp
 )
 
 # Configure client executable
@@ -178,6 +190,9 @@ foreach(target IN ITEMS ${PROJECT_NAME}Client ${PROJECT_NAME}Server)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/resources
             $<TARGET_FILE_DIR:${target}>/resources
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_SOURCE_DIR}/gameconfig.json
+            $<TARGET_FILE_DIR:${target}>/gameconfig.json
     )
 endforeach()
 

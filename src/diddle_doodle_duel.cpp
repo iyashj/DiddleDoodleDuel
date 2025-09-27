@@ -5,6 +5,7 @@
 #include "components/position.h"
 #include "components/renderable.h"
 #include "components/velocity.h"
+#include "core/game_config_manager.h"
 #include "logging/logger.h"
 #include "systems/debug_render.h"
 #include "performance/profiler.h"
@@ -73,6 +74,7 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer) : Game(renderer)
 
     engine::resources::setResourceRoot(engine::resources::getExecutableDir() / "resources");
 
+    // Initialize with default values first
     gameConfig = GameConfig{.brushSize = 25.0F,
                             .brushMovementSpeed = 200.0F,
                             .collisionForceMultiplier = 3.0F,
@@ -82,6 +84,8 @@ DiddleDoodleDuel::DiddleDoodleDuel(engine::IRenderer& renderer) : Game(renderer)
                             .restitution = 0.6F,
                             .collisionDamping = 0.8F,
                             .separationForce = 150.0F};
+
+    loadGameConfig();
 
     eventBus = std::make_unique<EventBus>();
     SceneTransitionSystem::initializeSceneState(registry);
@@ -288,7 +292,9 @@ void DiddleDoodleDuel::renderMainMenuUI() const {
     ImGui::SetNextWindowSize(ImVec2(420, 340), ImGuiCond_FirstUseEver);
 
     ImGui::Begin("Diddle Doodle Duel", nullptr,
-                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+                 ImGuiWindowFlags_NoCollapse |
+                 ImGuiWindowFlags_NoResize |
+                 ImGuiWindowFlags_NoSavedSettings);
 
     ImVec2 windowSize = ImGui::GetWindowSize();
     ImGui::SetCursorPosX((windowSize.x - 120) * 0.5f);
@@ -336,6 +342,17 @@ void DiddleDoodleDuel::renderMainMenuUI() const {
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Online multiplayer (WIP)");
+    }
+
+    ImGui::Spacing();
+    ImGui::SetCursorPosX(buttonX);
+    static bool isFullscreen = false;
+    if (ImGui::Button(isFullscreen ? "Windowed" : "Fullscreen", buttonSize)) {
+        ToggleFullscreen();
+        isFullscreen = !isFullscreen;
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Toggle fullscreen mode (F11 also works)");
     }
 
     ImGui::Spacing();
@@ -444,7 +461,7 @@ void DiddleDoodleDuel::renderOnlineUI() {
     ImGui::Spacing();
 
     // Action buttons
-    ImVec2 buttonSize(180, 40);
+    constexpr ImVec2 buttonSize(180, 40);
     
     if (ImGui::Button("Start Server", buttonSize)) {
         if (eventBus) {
@@ -658,6 +675,10 @@ void DiddleDoodleDuel::handleInputEvents() const {
     if (IsKeyPressed(KEY_O)) {
         eventBus->dispatcher.trigger<MenuEvent>(MenuEvent{MenuEvent::Type::StartOnlineGame});
     }
+    // F11 toggles fullscreen
+    if (IsKeyPressed(KEY_F11)) {
+        ToggleFullscreen();
+    }
 }
 
 void DiddleDoodleDuel::renderUISystems(const SceneType currentScene) {
@@ -674,6 +695,7 @@ void DiddleDoodleDuel::renderUISystems(const SceneType currentScene) {
             case SceneType::Game:
                 imguiSystem->renderGameUI(title, GetFPS());
                 imguiSystem->renderEcsDebug();
+                imguiSystem->renderConfigEditor();
                 break;
             case SceneType::NetworkingDemo:
                 renderOnlineUI();
@@ -684,6 +706,7 @@ void DiddleDoodleDuel::renderUISystems(const SceneType currentScene) {
             case SceneType::NetworkedGame:
                 imguiSystem->renderGameUI(title, GetFPS());
                 imguiSystem->renderEcsDebug();
+                imguiSystem->renderConfigEditor();
                 break;
             default:
                 break;
@@ -727,4 +750,9 @@ void DiddleDoodleDuel::handleMultiplayerInput() const {
     }
     
     multiplayerManager->sendPlayerInput(rotateLeft, rotateRight);
+}
+
+void DiddleDoodleDuel::loadGameConfig() {
+    const auto configPath = GameConfigManager::getConfigPath();
+    GameConfigManager::loadFromJson(configPath, gameConfig);
 }

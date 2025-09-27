@@ -75,6 +75,7 @@ private:
     void renderDebugInfo(SceneType currentScene) const;
     
     void handleMultiplayerInput() const;
+    void loadGameConfig();
 };
 
 #endif // DIDDLEDOODLEDUEL_DIDDLEDOODLEDUEL_H
